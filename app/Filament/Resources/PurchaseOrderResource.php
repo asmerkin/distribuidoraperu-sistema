@@ -218,6 +218,7 @@ class PurchaseOrderResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('created_at', 'desc')
+            ->recordUrl(fn ($record) => static::getUrl('view', ['record' => $record]))
             ->filters([
                 SelectFilter::make('status')
                     ->label('Estado')
@@ -255,11 +256,17 @@ class PurchaseOrderResource extends Resource
         ]);
     }
 
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()->with(['supplier', 'location']);
+    }
+
     public static function getPages(): array
     {
         return [
             'index'  => Pages\ListPurchaseOrders::route('/'),
             'create' => Pages\CreatePurchaseOrder::route('/create'),
+            'view'   => Pages\ViewPurchaseOrder::route('/{record}'),
             'edit'   => Pages\EditPurchaseOrder::route('/{record}/edit'),
         ];
     }
