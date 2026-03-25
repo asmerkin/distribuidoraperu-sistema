@@ -35,6 +35,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogo(fn () => view('filament.brand-logo'))
             ->brandLogoHeight('2.5rem')
             ->favicon('/images/logo.png')
+            ->font('DM Sans')
             ->colors([
                 'primary' => [
                     50 => '254, 242, 242',
@@ -58,10 +59,20 @@ class AdminPanelProvider extends PanelProvider
             ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
             ->globalSearchFieldKeyBindingSuffix()
             ->renderHook(PanelsRenderHook::STYLES_AFTER, fn () => new HtmlString('
+                <link rel="preconnect" href="https://fonts.googleapis.com">
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+                <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
                 <style>
                     .fi-topbar .fi-global-search-ctn { flex-grow: 1; display: flex; justify-content: center; }
                     .fi-topbar .fi-global-search { width: 100%; max-width: 600px; }
                     .fi-topbar .fi-global-search-field { width: 100%; }
+
+                    .fi-header-heading,
+                    .fi-logo,
+                    .fi-sidebar-group-label,
+                    .fi-simple-header-heading {
+                        font-family: "Outfit", ui-sans-serif, system-ui, sans-serif !important;
+                    }
                 </style>
             '))
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
