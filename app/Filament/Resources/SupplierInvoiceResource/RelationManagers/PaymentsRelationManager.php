@@ -174,6 +174,18 @@ class PaymentsRelationManager extends RelationManager
                     ->action(function (array $data, $record) {
                         $record->update($data);
 
+                        // Recalculate invoice from source of truth
+                        $invoice = $record->invoice;
+                        $newAmountPaid = (float) $invoice->payments()->sum('amount');
+                        $invoice->update([
+                            'amount_paid' => $newAmountPaid,
+                            'status' => $newAmountPaid >= (float) $invoice->total
+                                ? \App\Enums\SupplierInvoiceStatus::Paid
+                                : ($newAmountPaid > 0
+                                    ? \App\Enums\SupplierInvoiceStatus::PartiallyPaid
+                                    : \App\Enums\SupplierInvoiceStatus::Unpaid),
+                        ]);
+
                         Notification::make()
                             ->title('Pago actualizado')
                             ->success()

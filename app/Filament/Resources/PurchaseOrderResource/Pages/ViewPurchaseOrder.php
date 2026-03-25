@@ -20,6 +20,7 @@ use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
+use Illuminate\Support\Facades\DB;
 
 class ViewPurchaseOrder extends ViewRecord
 {
@@ -84,6 +85,29 @@ class ViewPurchaseOrder extends ViewRecord
                 ->icon('heroicon-o-truck')
                 ->color('gray')
                 ->url(fn () => SupplierResource::getUrl('view', ['record' => $record->supplier_id])),
+
+            Action::make('cancel')
+                ->label('Cancelar orden')
+                ->icon('heroicon-o-x-mark')
+                ->color('danger')
+                ->visible(fn () => $record->status === PurchaseOrderStatus::Sent)
+                ->requiresConfirmation()
+                ->modalHeading('Cancelar orden de compra')
+                ->modalDescription("¿Cancelar la orden {$record->po_number}? Esta acción no se puede deshacer.")
+                ->modalSubmitActionLabel('Sí, cancelar')
+                ->action(function () use ($record) {
+                    $record->update([
+                        'status' => PurchaseOrderStatus::Cancelled,
+                    ]);
+
+                    Notification::make()
+                        ->title('Orden cancelada')
+                        ->body("La orden {$record->po_number} fue cancelada.")
+                        ->success()
+                        ->send();
+
+                    $this->refreshFormData(['status']);
+                }),
 
             Action::make('eliminar')
                 ->label('Eliminar')
@@ -228,33 +252,6 @@ class ViewPurchaseOrder extends ViewRecord
             $confirmedPrice = (float) ($data["price_{$item->id}"] ?? $item->unit_cost);
             $anyReceived = true;
 
-            // Update PO item
-            $item->increment('quantity_received', $qty);
-
-            // Update price if different
-            if ($confirmedPrice != (float) $item->unit_cost) {
-                $item->update([
-                    'unit_cost' => $confirmedPrice,
-                    'subtotal' => $item->quantity_ordered * $confirmedPrice,
-                ]);
-            }
-
-            // Update variant cost price
-            $item->variant->update(['cost_price' => $confirmedPrice]);
-
-            // Create stock movement
-            $inventory->recordMovement(
-                variant: $item->variant,
-                location: $record->location,
-                type: StockMovementType::In,
-                reason: StockMovementReason::Purchase,
-                quantity: $qty,
-                reference: $record,
-                notes: "Recepción OC {$record->po_number}",
-                userId: auth()->id(),
-            );
-
-            // Collect for receipt record
             $receiptItems[] = [
                 'purchase_order_item_id' => $item->id,
                 'variant_id' => $item->variant->id,
@@ -273,33 +270,75 @@ class ViewPurchaseOrder extends ViewRecord
             return;
         }
 
-        // Create receipt record
-        $receipt = PurchaseOrderReceipt::create([
-            'purchase_order_id' => $record->id,
-            'received_at' => now(),
-            'user_id' => auth()->id(),
-        ]);
+        DB::transaction(function () use ($record, $inventory, $receiptItems) {
+            foreach ($record->items as $item) {
+                $receiptItem = collect($receiptItems)->firstWhere('purchase_order_item_id', $item->id);
+                if (! $receiptItem) {
+                    continue;
+                }
 
-        foreach ($receiptItems as $receiptItem) {
-            PurchaseOrderReceiptItem::create([
-                'purchase_order_receipt_id' => $receipt->id,
-                ...$receiptItem,
+                $qty = $receiptItem['quantity_received'];
+                $confirmedPrice = $receiptItem['unit_cost'];
+
+                // Update PO item
+                $item->increment('quantity_received', $qty);
+
+                // Update price if different
+                if ($confirmedPrice != (float) $item->unit_cost) {
+                    $item->update([
+                        'unit_cost' => $confirmedPrice,
+                        'subtotal' => $item->quantity_ordered * $confirmedPrice,
+                    ]);
+                }
+
+                // Update variant cost price
+                $item->variant->update(['cost_price' => $confirmedPrice]);
+
+                // Create stock movement
+                $inventory->recordMovement(
+                    variant: $item->variant,
+                    location: $record->location,
+                    type: StockMovementType::In,
+                    reason: StockMovementReason::Purchase,
+                    quantity: $qty,
+                    reference: $record,
+                    notes: "Recepción OC {$record->po_number}",
+                    userId: auth()->id(),
+                );
+            }
+
+            // Create receipt record
+            $receipt = PurchaseOrderReceipt::create([
+                'purchase_order_id' => $record->id,
+                'received_at' => now(),
+                'user_id' => auth()->id(),
             ]);
-        }
 
-        // Update PO status and total
-        $record->refresh()->load('items');
+            foreach ($receiptItems as $receiptItem) {
+                PurchaseOrderReceiptItem::create([
+                    'purchase_order_receipt_id' => $receipt->id,
+                    ...$receiptItem,
+                ]);
+            }
+
+            // Update PO status and total
+            $record->refresh()->load('items');
+            $allReceived = $record->items->every(
+                fn ($item) => $item->quantity_received >= $item->quantity_ordered,
+            );
+
+            $record->update([
+                'status' => $allReceived
+                    ? PurchaseOrderStatus::Received
+                    : PurchaseOrderStatus::PartiallyReceived,
+                'total' => $record->items->sum('subtotal'),
+            ]);
+        });
+
+        $record->refresh();
         $allReceived = $record->items->every(
             fn ($item) => $item->quantity_received >= $item->quantity_ordered,
         );
-
-        $record->update([
-            'status' => $allReceived
-                ? PurchaseOrderStatus::Received
-                : PurchaseOrderStatus::PartiallyReceived,
-            'total' => $record->items->sum('subtotal'),
-        ]);
-
         $statusLabel = $allReceived ? 'completa' : 'parcial';
 
         Notification::make()

@@ -98,6 +98,8 @@ class InventoryRelationManager extends RelationManager
                             $hasStock = $level !== null;
                             $currentQty = $level?->quantity ?? 0;
 
+                            $currentMinStock = $level?->min_stock ?? 0;
+
                             $fields[] = Section::make($location->name)
                                 ->description(fn ($get) => $get("enabled_{$location->id}")
                                     ? "Stock actual: {$currentQty}"
@@ -108,12 +110,19 @@ class InventoryRelationManager extends RelationManager
                                         ->default($hasStock)
                                         ->reactive(),
 
-                                    TextInput::make("qty_{$location->id}")
-                                        ->label('Cantidad')
-                                        ->integer()
-                                        ->default($currentQty)
-                                        ->minValue(0)
-                                        ->visible(fn ($get) => $get("enabled_{$location->id}")),
+                                    \Filament\Schemas\Components\Grid::make(2)->schema([
+                                        TextInput::make("qty_{$location->id}")
+                                            ->label('Cantidad')
+                                            ->integer()
+                                            ->default($currentQty)
+                                            ->minValue(0),
+
+                                        TextInput::make("min_stock_{$location->id}")
+                                            ->label('Stock mínimo')
+                                            ->integer()
+                                            ->default($currentMinStock)
+                                            ->minValue(0),
+                                    ])->visible(fn ($get) => $get("enabled_{$location->id}")),
                                 ])
                                 ->compact();
                         }
@@ -138,6 +147,17 @@ class InventoryRelationManager extends RelationManager
 
                             if (! $enabled) {
                                 if ($level) {
+                                    if ($level->quantity > 0) {
+                                        $inventory->recordMovement(
+                                            variant: $record,
+                                            location: $location,
+                                            type: StockMovementType::Out,
+                                            reason: StockMovementReason::Shrinkage,
+                                            quantity: $level->quantity,
+                                            notes: $data['notes'] ?? 'Ubicación desactivada para esta variante',
+                                            userId: auth()->id(),
+                                        );
+                                    }
                                     $adjustments++;
                                     $level->delete();
                                 }
@@ -146,9 +166,11 @@ class InventoryRelationManager extends RelationManager
                             }
 
                             $newQty = (int) ($data["qty_{$location->id}"] ?? $currentQty);
+                            $newMinStock = (int) ($data["min_stock_{$location->id}"] ?? $level?->min_stock ?? 0);
                             $diff = $newQty - $currentQty;
+                            $minStockChanged = $level && $newMinStock !== ($level->min_stock ?? 0);
 
-                            if ($diff === 0 && $level) {
+                            if ($diff === 0 && $level && ! $minStockChanged) {
                                 continue;
                             }
 
@@ -157,14 +179,13 @@ class InventoryRelationManager extends RelationManager
                                     'variant_id' => $record->id,
                                     'location_id' => $location->id,
                                     'quantity' => 0,
-                                    'min_stock' => 0,
+                                    'min_stock' => $newMinStock,
                                 ]);
                                 $adjustments++;
                                 continue;
                             }
 
                             if ($diff !== 0) {
-                                $adjustments++;
                                 $inventory->recordMovement(
                                     variant: $record,
                                     location: $location,
@@ -174,6 +195,14 @@ class InventoryRelationManager extends RelationManager
                                     notes: $data['notes'] ?? null,
                                     userId: auth()->id(),
                                 );
+                            }
+
+                            if ($diff !== 0 || $minStockChanged) {
+                                $adjustments++;
+                                $level = InventoryLevel::where('variant_id', $record->id)
+                                    ->where('location_id', $location->id)
+                                    ->first();
+                                $level?->update(['min_stock' => $newMinStock]);
                             }
                         }
 

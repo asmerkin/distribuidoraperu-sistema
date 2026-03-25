@@ -15,6 +15,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\DB;
 
 class ReceiptsRelationManager extends RelationManager
 {
@@ -101,39 +102,41 @@ class ReceiptsRelationManager extends RelationManager
                         $po->load('location');
                         $inventory = app(InventoryService::class);
 
-                        foreach ($record->items()->with('variant', 'purchaseOrderItem')->get() as $receiptItem) {
-                            // Revert stock: create salida movement
-                            $inventory->recordMovement(
-                                variant: $receiptItem->variant,
-                                location: $po->location,
-                                type: StockMovementType::Out,
-                                reason: StockMovementReason::StockCount,
-                                quantity: $receiptItem->quantity_received,
-                                reference: $po,
-                                notes: "Anulación recepción OC {$po->po_number}",
-                                userId: auth()->id(),
-                            );
+                        DB::transaction(function () use ($record, $po, $inventory) {
+                            foreach ($record->items()->with('variant', 'purchaseOrderItem')->get() as $receiptItem) {
+                                // Revert stock: create salida movement
+                                $inventory->recordMovement(
+                                    variant: $receiptItem->variant,
+                                    location: $po->location,
+                                    type: StockMovementType::Out,
+                                    reason: StockMovementReason::Purchase,
+                                    quantity: $receiptItem->quantity_received,
+                                    reference: $po,
+                                    notes: "Anulación recepción OC {$po->po_number}",
+                                    userId: auth()->id(),
+                                );
 
-                            // Revert PO item quantity_received
-                            $poItem = $receiptItem->purchaseOrderItem;
-                            $poItem->decrement('quantity_received', $receiptItem->quantity_received);
-                        }
+                                // Revert PO item quantity_received
+                                $poItem = $receiptItem->purchaseOrderItem;
+                                $poItem->decrement('quantity_received', $receiptItem->quantity_received);
+                            }
 
-                        // Mark receipt as voided
-                        $record->update(['status' => 'voided']);
+                            // Mark receipt as voided
+                            $record->update(['status' => 'voided']);
 
-                        // Recalculate PO status
-                        $po->refresh()->load('items');
-                        $totalReceived = $po->items->sum('quantity_received');
-                        $totalOrdered = $po->items->sum('quantity_ordered');
+                            // Recalculate PO status
+                            $po->refresh()->load('items');
+                            $totalReceived = $po->items->sum('quantity_received');
+                            $totalOrdered = $po->items->sum('quantity_ordered');
 
-                        $newStatus = match (true) {
-                            $totalReceived <= 0 => PurchaseOrderStatus::Sent,
-                            $totalReceived >= $totalOrdered => PurchaseOrderStatus::Received,
-                            default => PurchaseOrderStatus::PartiallyReceived,
-                        };
+                            $newStatus = match (true) {
+                                $totalReceived <= 0 => PurchaseOrderStatus::Sent,
+                                $totalReceived >= $totalOrdered => PurchaseOrderStatus::Received,
+                                default => PurchaseOrderStatus::PartiallyReceived,
+                            };
 
-                        $po->update(['status' => $newStatus]);
+                            $po->update(['status' => $newStatus]);
+                        });
 
                         Notification::make()
                             ->title('Recepción anulada')

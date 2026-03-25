@@ -82,7 +82,12 @@ class InvoicesRelationManager extends RelationManager
             TextInput::make('invoice_number')
                 ->label('N° Factura')
                 ->required()
-                ->maxLength(100),
+                ->maxLength(100)
+                ->unique(
+                    table: 'supplier_invoices',
+                    column: 'invoice_number',
+                    modifyRuleUsing: fn ($rule) => $rule->where('supplier_id', $this->getOwnerRecord()->id),
+                ),
 
             \Filament\Schemas\Components\Grid::make(2)
                 ->schema([

@@ -82,7 +82,7 @@ class PurchaseOrderResource extends Resource
                             fn (PurchaseOrderStatus $s) => [$s->value => $s->label()]
                         ))
                         ->default(PurchaseOrderStatus::Draft->value)
-                        ->disabled(fn (string $operation) => $operation === 'create')
+                        ->disabled()
                         ->required(),
 
                     Textarea::make('notes')
@@ -116,6 +116,7 @@ class PurchaseOrderResource extends Resource
                                 ->searchable()
                                 ->preload()
                                 ->required()
+                                ->distinct()
                                 ->columnSpan(3)
                                 ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set) {

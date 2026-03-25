@@ -62,7 +62,13 @@ class SupplierInvoiceResource extends Resource
             TextInput::make('invoice_number')
                 ->label('N° Factura')
                 ->required()
-                ->maxLength(100),
+                ->maxLength(100)
+                ->unique(
+                    table: 'supplier_invoices',
+                    column: 'invoice_number',
+                    ignorable: fn ($record) => $record,
+                    modifyRuleUsing: fn ($rule, $record) => $rule->where('supplier_id', $record?->supplier_id),
+                ),
 
             Select::make('supplier_id')
                 ->label('Proveedor')
