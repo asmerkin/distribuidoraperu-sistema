@@ -6,17 +6,30 @@ Distribuidora Perú es una distribuidora de artículos de oficina ubicada en Men
 
 ## Objetivo
 
-Construir un sistema web de gestión de inventario con dos módulos core: Catálogo + Stock (con conteo físico) y Compras (entrada de stock via Purchase Orders), más un CRUD de proveedores. El sistema debe ser simple, rápido de usar, y mobile-friendly para uso en depósito.
+Construir un sistema web de gestión de inventario con módulos de: Catálogo + Stock (con conteo físico), Compras (Purchase Orders con recepción y confirmación de precios), Proveedores (con facturas y pagos), y gestión de usuarios. El sistema debe ser simple, rápido de usar, y mobile-friendly para uso en depósito.
 
 ## Stack Técnico
 
 - **Backend:** Laravel 13 (PHP 8.5)
-- **Admin UI:** Filament v5 (última versión, panel principal del sistema, no solo admin)
+- **Admin UI:** Filament v5 (panel principal del sistema, no solo admin)
 - **Base de datos:** SQLite (desarrollo) / MySQL 8 (producción)
-- **Auth:** Laravel built-in con Filament Shield para roles/permisos
+- **Auth:** Laravel built-in, perfil de usuario con Filament, CRUD de usuarios
 - **Queue:** Laravel Queues (para envío de emails de POs)
-- **PDF generation:** Laravel DomPDF o similar (para POs)
-- **Deployment:** A definir (inicialmente puede correr en local o VPS básico)
+- **PDF generation:** Laravel DomPDF o similar (para POs) — pendiente
+- **Storage:** S3 (via league/flysystem-aws-s3-v3) para archivos adjuntos
+- **Deployment:** DigitalOcean App Platform
+- **Idioma:** Locale `es` (español), traducciones via `lang/es/`
+
+## Convenciones de Código
+
+- **IDs:** ULID (usa `HasUlids` trait)
+- **Money:** almacenar en decimal(10,2), sin minor units
+- **Enums:** PHP backed enums con **valores en inglés** (ej: `Draft = 'draft'`, `In = 'in'`). Labels en español via `__('enums.xxx')` con archivo `lang/es/enums.php`
+- **Services:** lógica de negocio en Services, no en Controllers ni en Models. `InventoryService` es el punto central para todo movimiento de stock
+- **Actions:** usar Filament Actions para operaciones (enviar PO, recibir, ajustar, transferir)
+- **Tests:** Feature tests para flujos críticos con Pest
+- **UI:** Todo en español. Los `modelLabel`, `navigationLabel`, notificaciones, etc. van directamente en español en el código Filament (no se usan traducciones para UI labels)
+- **Código:** Todo en inglés (nombres de clases, métodos, variables, enum cases, valores de DB)
 
 ## Módulos
 
@@ -24,322 +37,104 @@ Construir un sistema web de gestión de inventario con dos módulos core: Catál
 
 La estructura sigue el patrón de Shopify: un Product tiene una o más Variants. El inventario se trackea a nivel de Variant + Location (InventoryLevel). Un producto sin opciones tiene igualmente una única "default" variant.
 
-**Modelo: `Product`**
+**Modelos:** `Product`, `ProductOption`, `ProductOptionValue`, `Variant`, `Location`, `InventoryLevel`, `Category`
 
-| Campo | Tipo | Notas |
-|-------|------|-------|
-| id | ulid | PK |
-| name | string | Nombre del producto. Ej: "Resma A4" |
-| description | text, nullable | Descripción opcional |
-| category_id | FK | Relación con Category |
-| unit_of_measure | enum | unidad, caja, resma, pack, rollo, metro, kg |
-| is_active | boolean, default true | Soft-disable |
-| timestamps | | |
-
-**Modelo: `ProductOption`** (opcional, define los ejes de variación)
-
-| Campo | Tipo | Notas |
-|-------|------|-------|
-| id | ulid | PK |
-| product_id | FK | |
-| name | string | Ej: "Gramaje", "Color", "Tamaño" |
-| position | integer | Orden de visualización |
-| timestamps | | |
-
-**Modelo: `ProductOptionValue`**
-
-| Campo | Tipo | Notas |
-|-------|------|-------|
-| id | ulid | PK |
-| product_option_id | FK | |
-| value | string | Ej: "75g", "80g", "Blanco", "Amarillo" |
-| position | integer | Orden |
-| timestamps | | |
-
-**Modelo: `Variant`**
-
-| Campo | Tipo | Notas |
-|-------|------|-------|
-| id | ulid | PK |
-| product_id | FK | |
-| sku | string | Único, autogenerable |
-| barcode | string, nullable | Código de barras (EAN/UPC) por variante |
-| name | string | Autogenerado desde option values. Ej: "75g / Blanco". Para producto sin opciones: "Default" |
-| cost_price | decimal(10,2) | Último precio de compra |
-| is_active | boolean, default true | |
-| timestamps | | |
-
-**Tabla pivot: `variant_option_values`** (qué option values componen cada variant)
-
-| Campo | Tipo | Notas |
-|-------|------|-------|
-| variant_id | FK | |
-| product_option_value_id | FK | |
-
-**Modelo: `Location`**
-
-| Campo | Tipo | Notas |
-|-------|------|-------|
-| id | ulid | PK |
-| name | string | Ej: "Depósito Principal", "Local Mostrador", "Depósito 2" |
-| address | text, nullable | |
-| is_active | boolean, default true | |
-| timestamps | | |
-
-**Modelo: `InventoryLevel`** (stock de una variant en una location)
-
-| Campo | Tipo | Notas |
-|-------|------|-------|
-| id | ulid | PK |
-| variant_id | FK | |
-| location_id | FK | |
-| quantity | integer | Stock actual (denormalizado, calculado desde movimientos) |
-| min_stock | integer, default 0 | Alerta de stock mínimo para esta variant en esta location |
-| timestamps | | |
-| | | Unique constraint: (variant_id, location_id) |
-
-**Modelo: `Category`**
-
-| Campo | Tipo | Notas |
-|-------|------|-------|
-| id | ulid | PK |
-| name | string | Ej: "Papelería", "Escritura", "Tecnología" |
-| parent_id | FK, nullable | Categorías anidadas (1 nivel) |
-| timestamps | | |
+**Tabla pivot: `product_supplier`** — Relación many-to-many entre productos y proveedores (solo asociación, sin datos extra).
 
 **Relaciones clave:**
 ```
 Product hasMany Variants
 Product hasMany ProductOptions → each hasMany ProductOptionValues
+Product belongsToMany Suppliers (via product_supplier)
 Variant belongsToMany ProductOptionValues (via variant_option_values)
 Variant hasMany InventoryLevels
 Location hasMany InventoryLevels
 InventoryLevel belongsTo Variant + Location
 ```
 
-**Producto sin opciones:** Se crea automáticamente una sola Variant con name "Default", sin ProductOptions. La UI lo presenta como producto simple (sin selector de variante).
-
-**Producto con opciones:** Ejemplo: "Resma A4" con opción "Gramaje" (75g, 80g) y opción "Color" (Blanco, Amarillo) genera 4 variants: "75g / Blanco", "75g / Amarillo", "80g / Blanco", "80g / Amarillo". Cada una con su propio SKU, barcode, y precios.
-
 **Stock total de una variant:** `SUM(inventory_levels.quantity)` across all locations.
 **Stock total de un product:** `SUM(inventory_levels.quantity)` across all its variants and locations.
 
-**Funcionalidades Filament:**
-- CRUD de productos con inline management de variants (o generación automática desde opciones)
-- CRUD de locations
-- Vista de inventory levels por variant (expandible por location)
-- Import CSV para carga masiva inicial (con columnas: product_name, variant_name, sku, barcode, location, quantity, cost_price)
-- Export CSV/Excel
-- Vista de "stock bajo" (inventory_level.quantity <= min_stock) como widget en dashboard
-- Búsqueda por nombre de producto, nombre de variant, SKU, o código de barras
-
 ### 2. Gestión de Stock
 
-**Modelo: `StockMovement`**
+**Modelo: `StockMovement`** — Todo movimiento de stock es inmutable y pasa por `InventoryService`.
 
-| Campo | Tipo | Notas |
-|-------|------|-------|
-| id | ulid | PK |
-| variant_id | FK | La variant que se mueve |
-| location_id | FK | La location donde ocurre el movimiento |
-| type | enum | entrada, salida, ajuste, transferencia |
-| reason | enum | compra, ajuste_conteo, merma, devolucion, transferencia_entrada, transferencia_salida |
-| quantity | integer | Positivo siempre. El type define si suma o resta |
-| reference_type | string, nullable | Morph (PurchaseOrder, Transfer, etc.) |
-| reference_id | ulid, nullable | Morph |
-| notes | text, nullable | Notas libres |
-| user_id | FK | Quién registró el movimiento |
-| timestamps | | |
+**Enums:**
+- `StockMovementType`: `In`, `Out`, `Adjustment`, `Transfer`
+- `StockMovementReason`: `Purchase`, `StockCount`, `Shrinkage`, `Return`, `TransferIn`, `TransferOut`
 
 **Reglas de negocio:**
-- Todo movimiento de stock pasa por `StockMovement`. Nunca se modifica `InventoryLevel.quantity` directamente.
-- Un Service (`InventoryService`) centraliza la lógica: `recordMovement(variant, location, type, reason, qty, reference?, notes?)` que crea el movimiento y actualiza el `InventoryLevel` correspondiente.
-- Si no existe el `InventoryLevel` para esa variant+location, se crea automáticamente con quantity 0 antes de aplicar el movimiento.
-- El historial de movimientos es inmutable (no se editan ni borran, se crean ajustes compensatorios).
-- **Transferencias entre locations:** generan 2 movimientos: salida en origin + entrada en destino, vinculados por el mismo reference (Transfer).
+- Nunca se modifica `InventoryLevel.quantity` directamente
+- `InventoryService::recordMovement()` centraliza toda la lógica
+- Si no existe el `InventoryLevel` para esa variant+location, se crea automáticamente
+- Historial inmutable — se crean ajustes compensatorios para corregir
+- Transferencias generan 2 movimientos: salida en origin + entrada en destino
 
-**Funcionalidades Filament:**
-- Historial de movimientos por variant (timeline), filtrable por location
-- Ajuste manual de stock (para conteo físico): formulario que compara stock del sistema vs conteo real y genera movimiento de ajuste
-- Transferencia de stock entre locations (formulario simple: variant, origin, destino, cantidad)
-- Dashboard widget: variants con stock bajo (por location)
+**Funcionalidades:** Conteo físico (StockCountPage), Transferencias (StockTransferPage), Historial de movimientos (StockMovementHistory)
 
 ### 3. Compras — Purchase Orders
 
-**Modelo: `Supplier`**
+**Modelos:** `Supplier`, `PurchaseOrder`, `PurchaseOrderItem`, `PurchaseOrderReceipt`, `PurchaseOrderReceiptItem`
 
-| Campo | Tipo | Notas |
-|-------|------|-------|
-| id | ulid | PK |
-| name | string | Razón social |
-| tax_id | string, nullable | CUIT del proveedor |
-| contact_name | string, nullable | Persona de contacto |
-| email | string, nullable | Para envío de POs |
-| phone | string, nullable | |
-| address | text, nullable | |
-| payment_terms | text, nullable | Condiciones de pago (ej: "30 días fecha factura", "contado contra entrega") |
-| notes | text, nullable | Notas generales libres |
-| timestamps | | |
-
-**Modelo: `PurchaseOrder`**
-
-| Campo | Tipo | Notas |
-|-------|------|-------|
-| id | ulid | PK |
-| po_number | string | Autogenerado secuencial (PO-00001) |
-| supplier_id | FK | |
-| location_id | FK | A qué location entra la mercadería recibida |
-| status | enum | borrador, enviada, recibida_parcial, recibida, cancelada |
-| order_date | date | Fecha de la orden |
-| expected_date | date, nullable | Fecha esperada de entrega |
-| total | decimal(10,2) | Calculado |
-| notes | text, nullable | Notas internas |
-| notes_for_supplier | text, nullable | Notas que aparecen en el PDF/email |
-| user_id | FK | Quién creó la PO |
-| sent_at | datetime, nullable | Cuándo se envió por email |
-| timestamps | | |
-
-**Modelo: `PurchaseOrderItem`**
-
-| Campo | Tipo | Notas |
-|-------|------|-------|
-| id | ulid | PK |
-| purchase_order_id | FK | |
-| variant_id | FK | La variant que se compra |
-| quantity_ordered | integer | Lo que se pidió |
-| quantity_received | integer, default 0 | Lo que llegó (se actualiza en recepción) |
-| unit_cost | decimal(10,2) | Precio unitario de compra |
-| subtotal | decimal(10,2) | quantity_ordered * unit_cost |
-| timestamps | | |
+**Enum `PurchaseOrderStatus`:** `Draft`, `Sent`, `PartiallyReceived`, `Received`, `Cancelled`
 
 **Flujo de la Purchase Order:**
-
 ```
-1. CREAR (borrador)
-   → Se cargan proveedor, location destino, variants, cantidades, precios
-   → Status: borrador
-
-2. ENVIAR
-   → Se genera PDF de la PO
-   → Se envía por email al proveedor (usando email del Supplier)
-   → Status: enviada
-   → Se registra sent_at
-
-3. RECIBIR
-   → Pantalla de recepción: muestra lo pedido vs lo que llegó
-   → El usuario ingresa cantidad recibida por cada línea
-   → Si llegó todo: status → recibida
-   → Si falta algo: status → recibida_parcial (se puede recibir en múltiples entregas)
-   → Al confirmar recepción:
-     - Se generan StockMovements de tipo entrada/compra en la location de la PO
-     - Se actualiza cost_price de la variant con el último precio de compra
-
-4. CANCELAR
-   → Solo si está en borrador o enviada (no si ya se recibió algo)
+1. CREAR (Draft) → proveedor, location destino, variants, cantidades, precios
+2. ENVIAR (Sent) → marca sent_at (PDF/email pendiente de implementar)
+3. RECIBIR → modal con cantidad + precio por línea
+   → Crea PurchaseOrderReceipt con items (historial de recepciones)
+   → Si precio difiere: actualiza unit_cost de la línea, recalcula subtotal
+   → Actualiza cost_price de la variante con precio confirmado
+   → Genera StockMovements de entrada
+   → Status → Received o PartiallyReceived
+4. ANULAR RECEPCIÓN → revierte stock (crea salidas), resta cantidades, marca receipt como voided
+5. CANCELAR → solo en Draft o Sent
 ```
 
-**PDF de la Purchase Order:**
-- Header: "Distribuidora Perú" + datos de la empresa (configurables)
-- Datos del proveedor
-- Tabla: producto, SKU, cantidad, precio unitario, subtotal
-- Total
-- Notas para el proveedor
-- Fecha y número de PO
+**View de PO:** Infolist read-only con detalle + tab de Recepciones (RelationManager con acciones Ver/Anular)
 
-**Email:**
-- Asunto: "Orden de Compra {po_number} - Distribuidora Perú"
-- Body simple con texto introductorio
-- PDF adjunto
-- Reply-to configurable
+### 4. Facturas de Proveedores
 
-**Funcionalidades Filament:**
-- CRUD de proveedores
-- Crear/editar PO con líneas de productos (Repeater de Filament)
-- Acción "Enviar por email" con preview del PDF
-- Acción "Recibir mercadería" — wizard o formulario con las líneas y campo para cantidad recibida
-- Vista de POs pendientes de recepción
-- Filtros por status, proveedor, fecha
+**Modelos:** `SupplierInvoice`, `SupplierPayment`
 
-### 4. Dashboard
+**Enum `SupplierInvoiceStatus`:** `Unpaid`, `PartiallyPaid`, `Paid`
 
-- Widgets: total productos, total variants, variants con stock bajo, POs pendientes de recepción
-- Lista rápida de variants con stock bajo (por location)
-- POs recientes y su status
+- Facturas vinculables a una PO (opcional)
+- Pagos parciales/totales con registro de método y comprobante (FileUpload a S3)
+- Filtros: por estado, por vencidas, por rango de fechas, por proveedor
+- Vista del proveedor: tabs con Productos, Facturas, Órdenes de Compra, Pagos + widget de stats
 
-### 5. Usuarios y Permisos
+### 5. Dashboard
 
-**Roles iniciales:**
-- **admin**: Acceso total
-- **deposito**: Puede recibir mercadería (POs), hacer ajustes de stock, conteos físicos, ver productos. No puede crear POs ni modificar productos/proveedores.
+- Widget: Órdenes Pendientes de Recepción (full width)
+- Widget: Stock Bajo (full width)
 
-Usar Filament Shield o similar para manejo de permisos basado en policies.
+### 6. Usuarios
+
+- **Perfil propio:** Filament built-in (`->profile()`) — nombre, email, contraseña
+- **CRUD de usuarios:** Resource en Configuración — crear, editar, eliminar. No se puede eliminar el usuario logueado. Password hasheado, opcional en edición.
+- **Roles/permisos:** Pendiente (Filament Shield o policies)
 
 ## Configuración del Sistema
 
-**Modelo: `Setting`** (key-value o Spatie Settings)
+**Modelo: `Setting`** (key-value custom)
 
-- company_name: "Distribuidora Perú"
-- company_address: Dirección
-- company_phone: Teléfono
-- company_tax_id: CUIT
-- company_email: Email de contacto
-- po_reply_to_email: Email para reply de POs
+- company_name, company_address, company_phone, company_tax_id, company_email, po_reply_to_email
 
-## Conteo Físico (Feature importante)
-
-Para el inventario inicial y conteos periódicos:
-
-**Modelo: `StockCount`**
-
-| Campo | Tipo | Notas |
-|-------|------|-------|
-| id | ulid | PK |
-| location_id | FK | En qué location se hace el conteo |
-| status | enum | en_progreso, completado |
-| started_at | datetime | |
-| completed_at | datetime, nullable | |
-| user_id | FK | Quién hizo el conteo |
-| notes | text, nullable | |
-| timestamps | | |
-
-**Modelo: `StockCountItem`**
-
-| Campo | Tipo | Notas |
-|-------|------|-------|
-| id | ulid | PK |
-| stock_count_id | FK | |
-| variant_id | FK | La variant que se cuenta |
-| system_quantity | integer | Stock en sistema al momento del conteo (de InventoryLevel para esa variant+location) |
-| counted_quantity | integer | Lo que se contó físicamente |
-| difference | integer | counted - system (calculado) |
-| timestamps | | |
-
-**Flujo:**
-1. Iniciar conteo para una location → captura stock actual del sistema de todas las variants con InventoryLevel en esa location (o filtro por categoría)
-2. Ir variant por variant ingresando cantidad real (idealmente desde el celu, con búsqueda por barcode)
-3. Al finalizar, mostrar diferencias
-4. Confirmar → genera StockMovements de ajuste para todas las diferencias, en esa location
+**Branding:** Logo de Distribuidora Perú, color primario rojo (#dc2626), favicon, Zinc como gray.
 
 ## Lo que NO incluye esta versión
 
 - Ventas / registro de salida de mercadería (módulo futuro)
 - Clientes (D2C/B2B)
-- Precios de venta (se agregarán cuando se implemente ventas)
+- Precios de venta
 - Facturación electrónica AFIP
-- Cuentas corrientes de clientes (fiado/crédito)
-- Integración con bancos
+- Cuentas corrientes de clientes
 - E-commerce / tienda online
 - Reportes contables
 - Multi-moneda
-
-Estos pueden ser módulos futuros.
-
-## Convenciones de Código
-
-- IDs: ULID (usa `HasUlids` trait)
-- Money: almacenar en decimal(10,2), sin minor units (es inventario, no fintech)
-- Enums: usar PHP backed enums
-- Services: lógica de negocio en Services, no en Controllers ni en Models. `InventoryService` es el punto central para todo movimiento de stock.
-- Actions: usar Filament Actions para operaciones (enviar PO, recibir, ajustar, transferir)
-- Tests: Feature tests para flujos críticos (recibir PO suma stock en la location correcta, transferencia descuenta en origin y suma en destino, conteo físico genera ajustes correctos)
-- Observers o Events: para mantener `InventoryLevel.quantity` sincronizado via StockMovement
+- PDF de Purchase Orders (pendiente)
+- Email de Purchase Orders (pendiente)
+- Import/Export CSV (pendiente)
+- Roles y permisos granulares (pendiente)
