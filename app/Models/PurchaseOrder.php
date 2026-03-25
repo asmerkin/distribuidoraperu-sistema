@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-
 class PurchaseOrder extends Model
 {
     use HasUlids;
@@ -16,7 +15,7 @@ class PurchaseOrder extends Model
     {
         static::creating(function (PurchaseOrder $po) {
             if (empty($po->po_number)) {
-                $last = static::query()->lockForUpdate()->max('po_number');
+                $last = static::query()->max('po_number');
                 $next = $last ? ((int) substr($last, 3)) + 1 : 1;
                 $po->po_number = 'PO-' . str_pad($next, 5, '0', STR_PAD_LEFT);
             }
