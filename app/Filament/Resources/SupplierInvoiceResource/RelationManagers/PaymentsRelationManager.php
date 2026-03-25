@@ -25,7 +25,42 @@ class PaymentsRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        return $schema->components([]);
+        return $schema->components([
+            DatePicker::make('date')
+                ->label('Fecha')
+                ->required()
+                ->displayFormat('d/m/Y'),
+
+            TextInput::make('amount')
+                ->label('Monto')
+                ->numeric()
+                ->prefix('$')
+                ->required()
+                ->minValue(0.01),
+
+            Select::make('method')
+                ->label('Medio de pago')
+                ->options([
+                    'efectivo' => 'Efectivo',
+                    'transferencia' => 'Transferencia',
+                    'cheque' => 'Cheque',
+                ]),
+
+            TextInput::make('reference')
+                ->label('Referencia')
+                ->maxLength(255),
+
+            FileUpload::make('attachment')
+                ->label('Comprobante')
+                ->disk('public')
+                ->directory('supplier-payments')
+                ->acceptedFileTypes(['application/pdf', 'image/*'])
+                ->maxSize(10240),
+
+            Textarea::make('notes')
+                ->label('Notas')
+                ->rows(2),
+        ]);
     }
 
     public function table(Table $table): Table
@@ -64,7 +99,13 @@ class PaymentsRelationManager extends RelationManager
                     ->toggleable(),
             ])
             ->actions([
-                ViewAction::make()
+                Action::make('ver')
+                    ->label('Ver')
+                    ->icon('heroicon-o-eye')
+                    ->color('gray')
+                    ->modalHeading(fn ($record) => "Pago del " . $record->date->format('d/m/Y'))
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Cerrar')
                     ->infolist([
                         \Filament\Infolists\Components\TextEntry::make('date')->label('Fecha')->date('d/m/Y'),
                         \Filament\Infolists\Components\TextEntry::make('amount')->label('Monto')->money('ARS'),
@@ -75,11 +116,25 @@ class PaymentsRelationManager extends RelationManager
                         \Filament\Infolists\Components\TextEntry::make('attachment')
                             ->label('Comprobante')
                             ->visible(fn ($record) => filled($record->attachment))
-                            ->url(fn ($record) => $record->attachment ? \Illuminate\Support\Facades\Storage::url($record->attachment) : null)
+                            ->state('Descargar comprobante')
+                            ->url(fn ($record) => \Illuminate\Support\Facades\Storage::url($record->attachment))
                             ->openUrlInNewTab()
-                            ->state('Ver comprobante'),
+                            ->color('primary'),
                     ]),
-                EditAction::make()
+
+                Action::make('editar')
+                    ->label('Editar')
+                    ->icon('heroicon-o-pencil')
+                    ->modalHeading(fn ($record) => "Editar pago del " . $record->date->format('d/m/Y'))
+                    ->modalSubmitActionLabel('Guardar')
+                    ->fillForm(fn ($record) => [
+                        'date' => $record->date,
+                        'amount' => $record->amount,
+                        'method' => $record->method,
+                        'reference' => $record->reference,
+                        'attachment' => $record->attachment,
+                        'notes' => $record->notes,
+                    ])
                     ->form([
                         DatePicker::make('date')
                             ->label('Fecha')
@@ -115,7 +170,15 @@ class PaymentsRelationManager extends RelationManager
                         Textarea::make('notes')
                             ->label('Notas')
                             ->rows(2),
-                    ]),
+                    ])
+                    ->action(function (array $data, $record) {
+                        $record->update($data);
+
+                        Notification::make()
+                            ->title('Pago actualizado')
+                            ->success()
+                            ->send();
+                    }),
             ])
             ->headerActions([
                 Action::make('registrar_pago')
