@@ -11,6 +11,7 @@ use App\Models\Category;
 use App\Models\Product;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -143,8 +144,9 @@ class ProductResource extends Resource
                     ->alignCenter(),
             ])
             ->defaultSort('name')
-            ->recordAction('edit')
+            ->recordUrl(fn ($record) => static::getUrl('view', ['record' => $record]))
             ->actions([
+                ViewAction::make(),
                 EditAction::make(),
                 DeleteAction::make(),
             ]);
@@ -169,6 +171,7 @@ class ProductResource extends Resource
         return [
             'index'  => Pages\ListProducts::route('/'),
             'create' => Pages\CreateProduct::route('/create'),
+            'view'   => Pages\ViewProduct::route('/{record}'),
             'edit'   => Pages\EditProduct::route('/{record}/edit'),
         ];
     }
