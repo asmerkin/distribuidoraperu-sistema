@@ -202,10 +202,10 @@ class PaymentsRelationManager extends RelationManager
                         $invoice->update([
                             'amount_paid' => $newAmountPaid,
                             'status' => $newAmountPaid >= (float) $invoice->total
-                                ? \App\Enums\SupplierInvoiceStatus::Pagada
+                                ? \App\Enums\SupplierInvoiceStatus::Paid
                                 : ($newAmountPaid > 0
-                                    ? \App\Enums\SupplierInvoiceStatus::PagoParcial
-                                    : \App\Enums\SupplierInvoiceStatus::Impaga),
+                                    ? \App\Enums\SupplierInvoiceStatus::PartiallyPaid
+                                    : \App\Enums\SupplierInvoiceStatus::Unpaid),
                         ]);
 
                         Notification::make()

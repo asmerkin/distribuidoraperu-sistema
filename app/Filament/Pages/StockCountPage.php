@@ -148,8 +148,8 @@ class StockCountPage extends Page
             app(InventoryService::class)->recordMovement(
                 variant: $variant,
                 location: $location,
-                type: StockMovementType::Ajuste,
-                reason: StockMovementReason::AjusteConteo,
+                type: StockMovementType::Adjustment,
+                reason: StockMovementReason::StockCount,
                 quantity: $diff,
                 notes: 'Conteo físico',
                 userId: auth()->id(),

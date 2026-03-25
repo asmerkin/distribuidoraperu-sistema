@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('purchase_order_receipts', function (Blueprint $table) {
-            $table->string('status')->default('completada')->after('received_at');
+            $table->string('status')->default('completed')->after('received_at');
         });
     }
 

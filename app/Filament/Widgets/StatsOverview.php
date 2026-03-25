@@ -24,8 +24,8 @@ class StatsOverview extends StatsOverviewWidget
 
         $pendingPOs = PurchaseOrder::query()
             ->whereIn('status', [
-                PurchaseOrderStatus::Enviada,
-                PurchaseOrderStatus::RecibidaParcial,
+                PurchaseOrderStatus::Sent,
+                PurchaseOrderStatus::PartiallyReceived,
             ])
             ->count();
 

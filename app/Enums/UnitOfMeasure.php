@@ -4,24 +4,16 @@ namespace App\Enums;
 
 enum UnitOfMeasure: string
 {
-    case Unidad = 'unidad';
-    case Caja = 'caja';
-    case Resma = 'resma';
+    case Unit = 'unit';
+    case Box = 'box';
+    case Ream = 'ream';
     case Pack = 'pack';
-    case Rollo = 'rollo';
-    case Metro = 'metro';
+    case Roll = 'roll';
+    case Meter = 'meter';
     case Kg = 'kg';
 
     public function label(): string
     {
-        return match ($this) {
-            self::Unidad => 'Unidad',
-            self::Caja => 'Caja',
-            self::Resma => 'Resma',
-            self::Pack => 'Pack',
-            self::Rollo => 'Rollo',
-            self::Metro => 'Metro',
-            self::Kg => 'Kilogramo',
-        };
+        return __('enums.unit_of_measure.' . $this->value);
     }
 }

@@ -81,7 +81,7 @@ class PurchaseOrderResource extends Resource
                         ->options(collect(PurchaseOrderStatus::cases())->mapWithKeys(
                             fn (PurchaseOrderStatus $s) => [$s->value => $s->label()]
                         ))
-                        ->default(PurchaseOrderStatus::Borrador->value)
+                        ->default(PurchaseOrderStatus::Draft->value)
                         ->disabled(fn (string $operation) => $operation === 'create')
                         ->required(),
 
@@ -187,11 +187,11 @@ class PurchaseOrderResource extends Resource
                     ->badge()
                     ->formatStateUsing(fn (PurchaseOrderStatus $state) => $state->label())
                     ->color(fn (PurchaseOrderStatus $state) => match ($state) {
-                        PurchaseOrderStatus::Borrador      => 'gray',
-                        PurchaseOrderStatus::Enviada       => 'info',
-                        PurchaseOrderStatus::RecibidaParcial => 'warning',
-                        PurchaseOrderStatus::Recibida      => 'success',
-                        PurchaseOrderStatus::Cancelada     => 'danger',
+                        PurchaseOrderStatus::Draft             => 'gray',
+                        PurchaseOrderStatus::Sent              => 'info',
+                        PurchaseOrderStatus::PartiallyReceived => 'warning',
+                        PurchaseOrderStatus::Received          => 'success',
+                        PurchaseOrderStatus::Cancelled         => 'danger',
                     }),
 
                 TextColumn::make('order_date')

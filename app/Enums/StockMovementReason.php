@@ -4,22 +4,15 @@ namespace App\Enums;
 
 enum StockMovementReason: string
 {
-    case Compra = 'compra';
-    case AjusteConteo = 'ajuste_conteo';
-    case Merma = 'merma';
-    case Devolucion = 'devolucion';
-    case TransferenciaEntrada = 'transferencia_entrada';
-    case TransferenciaSalida = 'transferencia_salida';
+    case Purchase = 'purchase';
+    case StockCount = 'stock_count';
+    case Shrinkage = 'shrinkage';
+    case Return = 'return';
+    case TransferIn = 'transfer_in';
+    case TransferOut = 'transfer_out';
 
     public function label(): string
     {
-        return match ($this) {
-            self::Compra => 'Compra',
-            self::AjusteConteo => 'Ajuste por conteo',
-            self::Merma => 'Merma',
-            self::Devolucion => 'Devolución',
-            self::TransferenciaEntrada => 'Transferencia (entrada)',
-            self::TransferenciaSalida => 'Transferencia (salida)',
-        };
+        return __('enums.stock_movement_reason.' . $this->value);
     }
 }

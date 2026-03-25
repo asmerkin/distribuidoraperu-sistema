@@ -177,16 +177,16 @@ class SupplierInvoiceResource extends Resource
                 SelectFilter::make('status')
                     ->label('Estado')
                     ->options([
-                        'impaga' => 'Impaga',
-                        'pago_parcial' => 'Pago parcial',
-                        'pagada' => 'Pagada',
+                        'unpaid' => 'Impaga',
+                        'partially_paid' => 'Pago parcial',
+                        'paid' => 'Pagada',
                     ]),
 
                 Filter::make('vencidas')
                     ->label('Solo vencidas')
                     ->toggle()
                     ->query(fn ($query) => $query
-                        ->where('status', '!=', 'pagada')
+                        ->where('status', '!=', 'paid')
                         ->whereNotNull('due_date')
                         ->where('due_date', '<', today())
                     ),

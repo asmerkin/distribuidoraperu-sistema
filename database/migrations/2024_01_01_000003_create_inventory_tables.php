@@ -45,7 +45,7 @@ return new class extends Migration
             $table->string('name');
             $table->text('description')->nullable();
             $table->foreignUlid('category_id')->nullable()->constrained()->nullOnDelete();
-            $table->string('unit_of_measure')->default('unidad');
+            $table->string('unit_of_measure')->default('unit');
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
@@ -111,7 +111,7 @@ return new class extends Migration
             $table->string('po_number')->unique();
             $table->foreignUlid('supplier_id')->constrained()->restrictOnDelete();
             $table->foreignUlid('location_id')->constrained()->restrictOnDelete();
-            $table->string('status')->default('borrador');
+            $table->string('status')->default('draft');
             $table->date('order_date');
             $table->date('expected_date')->nullable();
             $table->decimal('total', 10, 2)->default(0);
@@ -136,7 +136,7 @@ return new class extends Migration
         Schema::create('stock_counts', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->foreignUlid('location_id')->constrained()->restrictOnDelete();
-            $table->string('status')->default('en_progreso');
+            $table->string('status')->default('in_progress');
             $table->datetime('started_at');
             $table->datetime('completed_at')->nullable();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();

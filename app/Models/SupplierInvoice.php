@@ -66,7 +66,7 @@ class SupplierInvoice extends Model
     {
         return $this->due_date
             && $this->due_date->isPast()
-            && $this->status !== SupplierInvoiceStatus::Pagada;
+            && $this->status !== SupplierInvoiceStatus::Paid;
     }
 
     public function getDisplayStatusAttribute(): string
@@ -85,9 +85,9 @@ class SupplierInvoice extends Model
         }
 
         return match ($this->status) {
-            SupplierInvoiceStatus::Impaga => 'gray',
-            SupplierInvoiceStatus::PagoParcial => 'warning',
-            SupplierInvoiceStatus::Pagada => 'success',
+            SupplierInvoiceStatus::Unpaid => 'gray',
+            SupplierInvoiceStatus::PartiallyPaid => 'warning',
+            SupplierInvoiceStatus::Paid => 'success',
         };
     }
 
@@ -98,8 +98,8 @@ class SupplierInvoice extends Model
 
         $this->update([
             'status' => (float) $this->amount_paid >= (float) $this->total
-                ? SupplierInvoiceStatus::Pagada
-                : SupplierInvoiceStatus::PagoParcial,
+                ? SupplierInvoiceStatus::Paid
+                : SupplierInvoiceStatus::PartiallyPaid,
         ]);
     }
 }

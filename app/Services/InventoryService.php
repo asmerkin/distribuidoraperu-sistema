@@ -51,10 +51,10 @@ class InventoryService
     private function calculateDelta(StockMovementType $type, int $quantity): int
     {
         return match ($type) {
-            StockMovementType::Entrada => $quantity,
-            StockMovementType::Salida => -$quantity,
-            StockMovementType::Ajuste => $quantity, // quantity can be positive or negative for adjustments
-            StockMovementType::Transferencia => 0, // handled by transfer method with two movements
+            StockMovementType::In => $quantity,
+            StockMovementType::Out => -$quantity,
+            StockMovementType::Adjustment => $quantity, // quantity can be positive or negative for adjustments
+            StockMovementType::Transfer => 0, // handled by transfer method with two movements
         };
     }
 
@@ -69,12 +69,12 @@ class InventoryService
     ): array {
         return DB::transaction(function () use ($variant, $from, $to, $quantity, $notes, $userId, $reference) {
             $outMovement = $this->recordMovementRaw(
-                $variant, $from, StockMovementType::Salida, StockMovementReason::TransferenciaSalida,
+                $variant, $from, StockMovementType::Out, StockMovementReason::TransferOut,
                 $quantity, $reference, $notes, $userId,
             );
 
             $inMovement = $this->recordMovementRaw(
-                $variant, $to, StockMovementType::Entrada, StockMovementReason::TransferenciaEntrada,
+                $variant, $to, StockMovementType::In, StockMovementReason::TransferIn,
                 $quantity, $reference, $notes, $userId,
             );
 
@@ -110,8 +110,8 @@ class InventoryService
         );
 
         $delta = match ($type) {
-            StockMovementType::Entrada => $quantity,
-            StockMovementType::Salida => -$quantity,
+            StockMovementType::In => $quantity,
+            StockMovementType::Out => -$quantity,
             default => 0,
         };
 

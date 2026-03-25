@@ -17,7 +17,7 @@ return new class extends Migration
             $table->date('due_date')->nullable();
             $table->decimal('total', 10, 2);
             $table->decimal('amount_paid', 10, 2)->default(0);
-            $table->string('status')->default('impaga');
+            $table->string('status')->default('unpaid');
             $table->string('attachment')->nullable();
             $table->text('notes')->nullable();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();

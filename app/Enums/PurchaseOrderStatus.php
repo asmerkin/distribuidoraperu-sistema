@@ -4,20 +4,14 @@ namespace App\Enums;
 
 enum PurchaseOrderStatus: string
 {
-    case Borrador = 'borrador';
-    case Enviada = 'enviada';
-    case RecibidaParcial = 'recibida_parcial';
-    case Recibida = 'recibida';
-    case Cancelada = 'cancelada';
+    case Draft = 'draft';
+    case Sent = 'sent';
+    case PartiallyReceived = 'partially_received';
+    case Received = 'received';
+    case Cancelled = 'cancelled';
 
     public function label(): string
     {
-        return match ($this) {
-            self::Borrador => 'Borrador',
-            self::Enviada => 'Enviada',
-            self::RecibidaParcial => 'Recibida parcial',
-            self::Recibida => 'Recibida',
-            self::Cancelada => 'Cancelada',
-        };
+        return __('enums.purchase_order_status.' . $this->value);
     }
 }

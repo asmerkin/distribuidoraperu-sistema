@@ -4,18 +4,13 @@ namespace App\Enums;
 
 enum StockMovementType: string
 {
-    case Entrada = 'entrada';
-    case Salida = 'salida';
-    case Ajuste = 'ajuste';
-    case Transferencia = 'transferencia';
+    case In = 'in';
+    case Out = 'out';
+    case Adjustment = 'adjustment';
+    case Transfer = 'transfer';
 
     public function label(): string
     {
-        return match ($this) {
-            self::Entrada => 'Entrada',
-            self::Salida => 'Salida',
-            self::Ajuste => 'Ajuste',
-            self::Transferencia => 'Transferencia',
-        };
+        return __('enums.stock_movement_type.' . $this->value);
     }
 }

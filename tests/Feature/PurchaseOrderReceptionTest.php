@@ -18,7 +18,7 @@ use App\Services\InventoryService;
 beforeEach(function () {
     $this->supplier = Supplier::create(['name' => 'Proveedor Test']);
     $this->location = Location::create(['name' => 'Depósito']);
-    $this->product = Product::create(['name' => 'Resma A4', 'unit_of_measure' => 'unidad']);
+    $this->product = Product::create(['name' => 'Resma A4', 'unit_of_measure' => 'unit']);
     $this->variant = Variant::create([
         'product_id' => $this->product->id,
         'sku' => 'RESMA-001',
@@ -31,7 +31,7 @@ it('receives full PO and creates stock movements', function () {
     $po = PurchaseOrder::create([
         'supplier_id' => $this->supplier->id,
         'location_id' => $this->location->id,
-        'status' => PurchaseOrderStatus::Enviada,
+        'status' => PurchaseOrderStatus::Sent,
         'order_date' => today(),
         'total' => 1000,
     ]);
@@ -51,8 +51,8 @@ it('receives full PO and creates stock movements', function () {
     $inventory->recordMovement(
         variant: $this->variant,
         location: $this->location,
-        type: StockMovementType::Entrada,
-        reason: StockMovementReason::Compra,
+        type: StockMovementType::In,
+        reason: StockMovementReason::Purchase,
         quantity: 10,
         reference: $po,
     );
@@ -69,8 +69,8 @@ it('receives full PO and creates stock movements', function () {
     expect($level->quantity)->toBe(10);
 
     $movement = StockMovement::first();
-    expect($movement->type)->toBe(StockMovementType::Entrada);
-    expect($movement->reason)->toBe(StockMovementReason::Compra);
+    expect($movement->type)->toBe(StockMovementType::In);
+    expect($movement->reason)->toBe(StockMovementReason::Purchase);
     expect($movement->reference_type)->toBe(PurchaseOrder::class);
     expect($movement->reference_id)->toBe($po->id);
 });
@@ -79,7 +79,7 @@ it('handles partial reception', function () {
     $po = PurchaseOrder::create([
         'supplier_id' => $this->supplier->id,
         'location_id' => $this->location->id,
-        'status' => PurchaseOrderStatus::Enviada,
+        'status' => PurchaseOrderStatus::Sent,
         'order_date' => today(),
         'total' => 1000,
     ]);
@@ -99,8 +99,8 @@ it('handles partial reception', function () {
     $inventory->recordMovement(
         variant: $this->variant,
         location: $this->location,
-        type: StockMovementType::Entrada,
-        reason: StockMovementReason::Compra,
+        type: StockMovementType::In,
+        reason: StockMovementReason::Purchase,
         quantity: 6,
         reference: $po,
     );
@@ -114,8 +114,8 @@ it('handles partial reception', function () {
     $inventory->recordMovement(
         variant: $this->variant,
         location: $this->location,
-        type: StockMovementType::Entrada,
-        reason: StockMovementReason::Compra,
+        type: StockMovementType::In,
+        reason: StockMovementReason::Purchase,
         quantity: 4,
         reference: $po,
     );
@@ -136,7 +136,7 @@ it('updates PO item and variant cost when price differs at reception', function 
     $po = PurchaseOrder::create([
         'supplier_id' => $this->supplier->id,
         'location_id' => $this->location->id,
-        'status' => PurchaseOrderStatus::Enviada,
+        'status' => PurchaseOrderStatus::Sent,
         'order_date' => today(),
         'total' => 1000,
     ]);
@@ -164,8 +164,8 @@ it('updates PO item and variant cost when price differs at reception', function 
     $inventory->recordMovement(
         variant: $this->variant,
         location: $this->location,
-        type: StockMovementType::Entrada,
-        reason: StockMovementReason::Compra,
+        type: StockMovementType::In,
+        reason: StockMovementReason::Purchase,
         quantity: 10,
         reference: $po,
     );
@@ -182,7 +182,7 @@ it('creates receipt records with items', function () {
     $po = PurchaseOrder::create([
         'supplier_id' => $this->supplier->id,
         'location_id' => $this->location->id,
-        'status' => PurchaseOrderStatus::Enviada,
+        'status' => PurchaseOrderStatus::Sent,
         'order_date' => today(),
         'total' => 1000,
     ]);

@@ -40,7 +40,7 @@ class Supplier extends Model
     {
         return round(
             (float) $this->invoices()
-                ->where('status', '!=', 'pagada')
+                ->where('status', '!=', 'paid')
                 ->selectRaw('COALESCE(SUM(total - amount_paid), 0) as owed')
                 ->value('owed'),
             2,

@@ -18,9 +18,9 @@ class SupplierStatsWidget extends StatsOverviewWidget
         $totalFacturado = (float) $supplier->invoices()->sum('total');
         $totalPagado = (float) $supplier->invoices()->sum('amount_paid');
         $totalAdeudado = $totalFacturado - $totalPagado;
-        $facturasImpagas = $supplier->invoices()->where('status', '!=', 'pagada')->count();
+        $facturasImpagas = $supplier->invoices()->where('status', '!=', 'paid')->count();
         $facturasVencidas = $supplier->invoices()
-            ->where('status', '!=', 'pagada')
+            ->where('status', '!=', 'paid')
             ->whereNotNull('due_date')
             ->where('due_date', '<', today())
             ->count();

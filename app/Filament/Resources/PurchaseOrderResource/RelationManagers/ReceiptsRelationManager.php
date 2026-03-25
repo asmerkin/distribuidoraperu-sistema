@@ -53,13 +53,13 @@ class ReceiptsRelationManager extends RelationManager
                     ->label('Estado')
                     ->badge()
                     ->formatStateUsing(fn (string $state) => match ($state) {
-                        'completada' => 'Completada',
-                        'anulada' => 'Anulada',
+                        'completed' => 'Completada',
+                        'voided' => 'Anulada',
                         default => $state,
                     })
                     ->color(fn (string $state) => match ($state) {
-                        'completada' => 'success',
-                        'anulada' => 'danger',
+                        'completed' => 'success',
+                        'voided' => 'danger',
                         default => 'gray',
                     }),
             ])
@@ -75,8 +75,8 @@ class ReceiptsRelationManager extends RelationManager
                         TextEntry::make('received_at')->label('Fecha')->dateTime('d/m/Y H:i'),
                         TextEntry::make('user.name')->label('Recibió')->placeholder('—'),
                         TextEntry::make('status')->label('Estado')->badge()
-                            ->formatStateUsing(fn (string $state) => $state === 'anulada' ? 'Anulada' : 'Completada')
-                            ->color(fn (string $state) => $state === 'anulada' ? 'danger' : 'success'),
+                            ->formatStateUsing(fn (string $state) => $state === 'voided' ? 'Anulada' : 'Completada')
+                            ->color(fn (string $state) => $state === 'voided' ? 'danger' : 'success'),
                         RepeatableEntry::make('items')
                             ->label('Productos recibidos')
                             ->schema([
@@ -92,7 +92,7 @@ class ReceiptsRelationManager extends RelationManager
                     ->label('Anular')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
-                    ->visible(fn (PurchaseOrderReceipt $record) => $record->status === 'completada')
+                    ->visible(fn (PurchaseOrderReceipt $record) => $record->status === 'completed')
                     ->requiresConfirmation()
                     ->modalHeading('Anular recepción')
                     ->modalDescription('Se revertirán los movimientos de stock y las cantidades recibidas de la PO. Podrás hacer una nueva recepción con los datos correctos.')
@@ -106,8 +106,8 @@ class ReceiptsRelationManager extends RelationManager
                             $inventory->recordMovement(
                                 variant: $receiptItem->variant,
                                 location: $po->location,
-                                type: StockMovementType::Salida,
-                                reason: StockMovementReason::AjusteConteo,
+                                type: StockMovementType::Out,
+                                reason: StockMovementReason::StockCount,
                                 quantity: $receiptItem->quantity_received,
                                 reference: $po,
                                 notes: "Anulación recepción OC {$po->po_number}",
@@ -119,8 +119,8 @@ class ReceiptsRelationManager extends RelationManager
                             $poItem->decrement('quantity_received', $receiptItem->quantity_received);
                         }
 
-                        // Mark receipt as anulada
-                        $record->update(['status' => 'anulada']);
+                        // Mark receipt as voided
+                        $record->update(['status' => 'voided']);
 
                         // Recalculate PO status
                         $po->refresh()->load('items');
@@ -128,9 +128,9 @@ class ReceiptsRelationManager extends RelationManager
                         $totalOrdered = $po->items->sum('quantity_ordered');
 
                         $newStatus = match (true) {
-                            $totalReceived <= 0 => PurchaseOrderStatus::Enviada,
-                            $totalReceived >= $totalOrdered => PurchaseOrderStatus::Recibida,
-                            default => PurchaseOrderStatus::RecibidaParcial,
+                            $totalReceived <= 0 => PurchaseOrderStatus::Sent,
+                            $totalReceived >= $totalOrdered => PurchaseOrderStatus::Received,
+                            default => PurchaseOrderStatus::PartiallyReceived,
                         };
 
                         $po->update(['status' => $newStatus]);

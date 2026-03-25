@@ -168,8 +168,8 @@ class InventoryRelationManager extends RelationManager
                                 $inventory->recordMovement(
                                     variant: $record,
                                     location: $location,
-                                    type: StockMovementType::Ajuste,
-                                    reason: StockMovementReason::AjusteConteo,
+                                    type: StockMovementType::Adjustment,
+                                    reason: StockMovementReason::StockCount,
                                     quantity: $diff,
                                     notes: $data['notes'] ?? null,
                                     userId: auth()->id(),

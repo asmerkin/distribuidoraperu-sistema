@@ -22,7 +22,7 @@ class PurchaseOrder extends Model
             }
 
             if (empty($po->status)) {
-                $po->status = PurchaseOrderStatus::Borrador;
+                $po->status = PurchaseOrderStatus::Draft;
             }
 
             if (empty($po->user_id) && auth()->check()) {

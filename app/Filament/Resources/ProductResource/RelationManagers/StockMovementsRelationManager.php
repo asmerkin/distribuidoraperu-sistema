@@ -50,10 +50,10 @@ class StockMovementsRelationManager extends RelationManager
                     ->badge()
                     ->formatStateUsing(fn (StockMovementType $state) => $state->label())
                     ->color(fn (StockMovementType $state) => match ($state) {
-                        StockMovementType::Entrada => 'success',
-                        StockMovementType::Salida => 'danger',
-                        StockMovementType::Ajuste => 'warning',
-                        StockMovementType::Transferencia => 'info',
+                        StockMovementType::In => 'success',
+                        StockMovementType::Out => 'danger',
+                        StockMovementType::Adjustment => 'warning',
+                        StockMovementType::Transfer => 'info',
                     }),
 
                 TextColumn::make('reason')
@@ -66,15 +66,15 @@ class StockMovementsRelationManager extends RelationManager
                     ->formatStateUsing(function (StockMovement $record) {
                         $qty = $record->quantity;
                         return match ($record->type) {
-                            StockMovementType::Entrada => "+{$qty}",
-                            StockMovementType::Salida => "-{$qty}",
+                            StockMovementType::In => "+{$qty}",
+                            StockMovementType::Out => "-{$qty}",
                             default => ($qty >= 0 ? "+{$qty}" : (string) $qty),
                         };
                     })
                     ->color(function (StockMovement $record) {
                         return match ($record->type) {
-                            StockMovementType::Entrada => 'success',
-                            StockMovementType::Salida => 'danger',
+                            StockMovementType::In => 'success',
+                            StockMovementType::Out => 'danger',
                             default => $record->quantity >= 0 ? 'success' : 'danger',
                         };
                     }),

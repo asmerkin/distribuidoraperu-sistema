@@ -23,8 +23,8 @@ class PendingPurchaseOrdersWidget extends TableWidget
                 PurchaseOrder::query()
                     ->with('supplier')
                     ->whereIn('status', [
-                        PurchaseOrderStatus::Enviada,
-                        PurchaseOrderStatus::RecibidaParcial,
+                        PurchaseOrderStatus::Sent,
+                        PurchaseOrderStatus::PartiallyReceived,
                     ])
                     ->orderBy('order_date')
             )
@@ -43,8 +43,8 @@ class PendingPurchaseOrdersWidget extends TableWidget
                     ->badge()
                     ->formatStateUsing(fn (PurchaseOrderStatus $state): string => $state->label())
                     ->color(fn (PurchaseOrderStatus $state): string => match ($state) {
-                        PurchaseOrderStatus::Enviada => 'info',
-                        PurchaseOrderStatus::RecibidaParcial => 'warning',
+                        PurchaseOrderStatus::Sent => 'info',
+                        PurchaseOrderStatus::PartiallyReceived => 'warning',
                         default => 'gray',
                     }),
 

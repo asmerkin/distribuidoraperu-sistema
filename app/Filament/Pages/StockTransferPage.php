@@ -195,7 +195,7 @@ class StockTransferPage extends Page
     public function getRecentTransfers(): \Illuminate\Support\Collection
     {
         return StockMovement::with(['variant.product', 'location', 'user'])
-            ->where('reason', StockMovementReason::TransferenciaEntrada)
+            ->where('reason', StockMovementReason::TransferIn)
             ->latest()
             ->limit(10)
             ->get()

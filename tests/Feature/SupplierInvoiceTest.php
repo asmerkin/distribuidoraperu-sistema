@@ -19,7 +19,7 @@ it('creates an invoice with impaga status', function () {
     ]);
 
     $invoice->refresh();
-    expect($invoice->status)->toBe(SupplierInvoiceStatus::Impaga);
+    expect($invoice->status)->toBe(SupplierInvoiceStatus::Unpaid);
     expect($invoice->amount_paid)->toBe('0.00');
     expect($invoice->balance)->toBe(1000.0);
 });
@@ -34,7 +34,7 @@ it('changes to pago_parcial after partial payment', function () {
 
     $invoice->recordPayment(400);
 
-    expect($invoice->status)->toBe(SupplierInvoiceStatus::PagoParcial);
+    expect($invoice->status)->toBe(SupplierInvoiceStatus::PartiallyPaid);
     expect($invoice->amount_paid)->toBe('400.00');
     expect($invoice->balance)->toBe(600.0);
 });
@@ -49,7 +49,7 @@ it('changes to pagada after full payment', function () {
 
     $invoice->recordPayment(500);
 
-    expect($invoice->status)->toBe(SupplierInvoiceStatus::Pagada);
+    expect($invoice->status)->toBe(SupplierInvoiceStatus::Paid);
     expect($invoice->balance)->toBe(0.0);
 });
 
@@ -62,10 +62,10 @@ it('changes to pagada after multiple partial payments', function () {
     ]);
 
     $invoice->recordPayment(300);
-    expect($invoice->status)->toBe(SupplierInvoiceStatus::PagoParcial);
+    expect($invoice->status)->toBe(SupplierInvoiceStatus::PartiallyPaid);
 
     $invoice->recordPayment(700);
-    expect($invoice->status)->toBe(SupplierInvoiceStatus::Pagada);
+    expect($invoice->status)->toBe(SupplierInvoiceStatus::Paid);
     expect($invoice->balance)->toBe(0.0);
 });
 
@@ -105,7 +105,7 @@ it('calculates supplier total owed', function () {
         'date' => today(),
         'total' => 1000,
         'amount_paid' => 300,
-        'status' => SupplierInvoiceStatus::PagoParcial,
+        'status' => SupplierInvoiceStatus::PartiallyPaid,
     ]);
 
     SupplierInvoice::create([
@@ -113,7 +113,7 @@ it('calculates supplier total owed', function () {
         'invoice_number' => 'FC-008',
         'date' => today(),
         'total' => 500,
-        'status' => SupplierInvoiceStatus::Impaga,
+        'status' => SupplierInvoiceStatus::Unpaid,
     ]);
 
     SupplierInvoice::create([
@@ -122,7 +122,7 @@ it('calculates supplier total owed', function () {
         'date' => today(),
         'total' => 2000,
         'amount_paid' => 2000,
-        'status' => SupplierInvoiceStatus::Pagada,
+        'status' => SupplierInvoiceStatus::Paid,
     ]);
 
     expect($this->supplier->total_owed)->toBe(1200.0);

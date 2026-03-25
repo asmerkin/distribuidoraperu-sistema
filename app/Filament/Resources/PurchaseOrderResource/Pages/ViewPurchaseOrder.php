@@ -38,20 +38,20 @@ class ViewPurchaseOrder extends ViewRecord
 
         return [
             EditAction::make()
-                ->visible(fn () => $record->status === PurchaseOrderStatus::Borrador),
+                ->visible(fn () => $record->status === PurchaseOrderStatus::Draft),
 
             Action::make('send')
                 ->label('Enviar al proveedor')
                 ->icon('heroicon-o-paper-airplane')
                 ->color('info')
-                ->visible(fn () => $record->status === PurchaseOrderStatus::Borrador)
+                ->visible(fn () => $record->status === PurchaseOrderStatus::Draft)
                 ->requiresConfirmation()
                 ->modalHeading('Enviar orden de compra')
                 ->modalDescription("Se enviará la orden {$record->po_number} al proveedor {$record->supplier->name}.")
                 ->modalSubmitActionLabel('Enviar')
                 ->action(function () use ($record) {
                     $record->update([
-                        'status' => PurchaseOrderStatus::Enviada,
+                        'status' => PurchaseOrderStatus::Sent,
                         'sent_at' => now(),
                     ]);
 
@@ -69,8 +69,8 @@ class ViewPurchaseOrder extends ViewRecord
                 ->icon('heroicon-o-truck')
                 ->color('success')
                 ->visible(fn () => in_array($record->status, [
-                    PurchaseOrderStatus::Enviada,
-                    PurchaseOrderStatus::RecibidaParcial,
+                    PurchaseOrderStatus::Sent,
+                    PurchaseOrderStatus::PartiallyReceived,
                 ]))
                 ->modalHeading('Recibir mercadería')
                 ->modalDescription("Orden {$record->po_number} — Ingresá las cantidades recibidas.")
@@ -89,7 +89,7 @@ class ViewPurchaseOrder extends ViewRecord
                 ->label('Eliminar')
                 ->color('danger')
                 ->link()
-                ->visible(fn () => $record->status === PurchaseOrderStatus::Borrador)
+                ->visible(fn () => $record->status === PurchaseOrderStatus::Draft)
                 ->requiresConfirmation()
                 ->modalHeading('Eliminar orden de compra')
                 ->modalDescription("¿Eliminar la orden {$record->po_number}?")
@@ -121,11 +121,11 @@ class ViewPurchaseOrder extends ViewRecord
                         ->badge()
                         ->formatStateUsing(fn (PurchaseOrderStatus $state) => $state->label())
                         ->color(fn (PurchaseOrderStatus $state) => match ($state) {
-                            PurchaseOrderStatus::Borrador => 'gray',
-                            PurchaseOrderStatus::Enviada => 'info',
-                            PurchaseOrderStatus::RecibidaParcial => 'warning',
-                            PurchaseOrderStatus::Recibida => 'success',
-                            PurchaseOrderStatus::Cancelada => 'danger',
+                            PurchaseOrderStatus::Draft => 'gray',
+                            PurchaseOrderStatus::Sent => 'info',
+                            PurchaseOrderStatus::PartiallyReceived => 'warning',
+                            PurchaseOrderStatus::Received => 'success',
+                            PurchaseOrderStatus::Cancelled => 'danger',
                         }),
                     TextEntry::make('location.name')->label('Destino'),
                     TextEntry::make('order_date')->label('Fecha de orden')->date('d/m/Y'),
@@ -246,8 +246,8 @@ class ViewPurchaseOrder extends ViewRecord
             $inventory->recordMovement(
                 variant: $item->variant,
                 location: $record->location,
-                type: StockMovementType::Entrada,
-                reason: StockMovementReason::Compra,
+                type: StockMovementType::In,
+                reason: StockMovementReason::Purchase,
                 quantity: $qty,
                 reference: $record,
                 notes: "Recepción OC {$record->po_number}",
@@ -295,8 +295,8 @@ class ViewPurchaseOrder extends ViewRecord
 
         $record->update([
             'status' => $allReceived
-                ? PurchaseOrderStatus::Recibida
-                : PurchaseOrderStatus::RecibidaParcial,
+                ? PurchaseOrderStatus::Received
+                : PurchaseOrderStatus::PartiallyReceived,
             'total' => $record->items->sum('subtotal'),
         ]);
 

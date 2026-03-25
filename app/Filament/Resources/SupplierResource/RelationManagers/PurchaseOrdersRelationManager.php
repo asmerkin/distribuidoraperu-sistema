@@ -28,11 +28,11 @@ class PurchaseOrdersRelationManager extends RelationManager
                     ->badge()
                     ->formatStateUsing(fn ($state) => $state->label())
                     ->color(fn ($state) => match ($state) {
-                        \App\Enums\PurchaseOrderStatus::Borrador => 'gray',
-                        \App\Enums\PurchaseOrderStatus::Enviada => 'info',
-                        \App\Enums\PurchaseOrderStatus::RecibidaParcial => 'warning',
-                        \App\Enums\PurchaseOrderStatus::Recibida => 'success',
-                        \App\Enums\PurchaseOrderStatus::Cancelada => 'danger',
+                        \App\Enums\PurchaseOrderStatus::Draft => 'gray',
+                        \App\Enums\PurchaseOrderStatus::Sent => 'info',
+                        \App\Enums\PurchaseOrderStatus::PartiallyReceived => 'warning',
+                        \App\Enums\PurchaseOrderStatus::Received => 'success',
+                        \App\Enums\PurchaseOrderStatus::Cancelled => 'danger',
                     }),
 
                 TextColumn::make('order_date')
