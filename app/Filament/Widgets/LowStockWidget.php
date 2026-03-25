@@ -27,7 +27,7 @@ class LowStockWidget extends TableWidget
                 TextColumn::make('variant.sku')
                     ->label('SKU')
                     ->searchable()
-                    ->font('mono'),
+                    ->sortable(),
 
                 TextColumn::make('variant.product.name')
                     ->label('Producto')
