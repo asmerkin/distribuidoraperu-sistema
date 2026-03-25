@@ -13,8 +13,6 @@ use Filament\Support\Colors\Color;
 use Filament\View\PanelsRenderHook;
 use App\Filament\Widgets\LowStockWidget;
 use App\Filament\Widgets\PendingPurchaseOrdersWidget;
-use App\Filament\Widgets\StatsOverview;
-use Filament\Widgets\AccountWidget;
 use Illuminate\Support\HtmlString;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -72,10 +70,8 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
-                AccountWidget::class,
-                StatsOverview::class,
-                LowStockWidget::class,
                 PendingPurchaseOrdersWidget::class,
+                LowStockWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

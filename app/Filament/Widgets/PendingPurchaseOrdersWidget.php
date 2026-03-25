@@ -13,7 +13,7 @@ use Filament\Widgets\TableWidget;
 
 class PendingPurchaseOrdersWidget extends TableWidget
 {
-    protected int | string | array $columnSpan = 'half';
+    protected int | string | array $columnSpan = 'full';
 
     public function table(Table $table): Table
     {
