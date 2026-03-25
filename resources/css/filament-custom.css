@@ -1,0 +1,9 @@
+/* Make global search prominent and centered in the topbar */
+.fi-topbar .fi-global-search {
+    flex-grow: 1;
+    max-width: 600px;
+}
+
+.fi-topbar .fi-global-search .fi-global-search-field {
+    width: 100%;
+}
