@@ -16,6 +16,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -180,6 +181,41 @@ class SupplierInvoiceResource extends Resource
                         'pago_parcial' => 'Pago parcial',
                         'pagada' => 'Pagada',
                     ]),
+
+                Filter::make('vencidas')
+                    ->label('Solo vencidas')
+                    ->toggle()
+                    ->query(fn ($query) => $query
+                        ->where('status', '!=', 'pagada')
+                        ->whereNotNull('due_date')
+                        ->where('due_date', '<', today())
+                    ),
+
+                Filter::make('date_range')
+                    ->label('Rango de fechas')
+                    ->form([
+                        \Filament\Forms\Components\DatePicker::make('from')
+                            ->label('Desde')
+                            ->displayFormat('d/m/Y'),
+                        \Filament\Forms\Components\DatePicker::make('until')
+                            ->label('Hasta')
+                            ->displayFormat('d/m/Y'),
+                    ])
+                    ->query(function ($query, array $data) {
+                        return $query
+                            ->when($data['from'], fn ($q, $date) => $q->where('date', '>=', $date))
+                            ->when($data['until'], fn ($q, $date) => $q->where('date', '<=', $date));
+                    })
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+                        if ($data['from'] ?? null) {
+                            $indicators[] = 'Desde: ' . \Carbon\Carbon::parse($data['from'])->format('d/m/Y');
+                        }
+                        if ($data['until'] ?? null) {
+                            $indicators[] = 'Hasta: ' . \Carbon\Carbon::parse($data['until'])->format('d/m/Y');
+                        }
+                        return $indicators;
+                    }),
             ])
             ->recordUrl(fn ($record) => static::getUrl('view', ['record' => $record]));
     }
