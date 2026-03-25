@@ -11,6 +11,7 @@ use App\Models\Category;
 use App\Models\Product;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -18,6 +19,7 @@ use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -48,6 +50,19 @@ class ProductResource extends Resource
             Textarea::make('description')
                 ->label('Descripción')
                 ->rows(3)
+                ->columnSpan(2),
+
+            FileUpload::make('images')
+                ->label('Imágenes')
+                ->disk('public')
+                ->directory('product-images')
+                ->image()
+                ->multiple()
+                ->reorderable()
+                ->appendFiles()
+                ->maxFiles(10)
+                ->maxSize(5120)
+                ->panelLayout('grid')
                 ->columnSpan(2),
 
             Select::make('category_id')
@@ -83,6 +98,13 @@ class ProductResource extends Resource
     {
         return $table
             ->columns([
+                ImageColumn::make('images')
+                    ->label('Foto')
+                    ->disk('public')
+                    ->limit(1)
+                    ->square()
+                    ->size(40),
+
                 TextColumn::make('name')
                     ->label('Nombre')
                     ->searchable()

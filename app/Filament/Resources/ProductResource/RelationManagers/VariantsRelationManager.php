@@ -7,11 +7,13 @@ use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -44,6 +46,19 @@ class VariantsRelationManager extends RelationManager
                 ->prefix('$')
                 ->required(),
 
+            FileUpload::make('images')
+                ->label('Imágenes')
+                ->disk('public')
+                ->directory('variant-images')
+                ->image()
+                ->multiple()
+                ->reorderable()
+                ->appendFiles()
+                ->maxFiles(5)
+                ->maxSize(5120)
+                ->panelLayout('grid')
+                ->columnSpan(2),
+
             Toggle::make('is_active')
                 ->label('Activo')
                 ->default(true)
@@ -55,6 +70,13 @@ class VariantsRelationManager extends RelationManager
     {
         return $table
             ->columns([
+                ImageColumn::make('images')
+                    ->label('Foto')
+                    ->disk('public')
+                    ->limit(1)
+                    ->square()
+                    ->size(32),
+
                 TextColumn::make('sku')
                     ->label('SKU')
                     ->searchable()

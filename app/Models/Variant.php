@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class Variant extends Model
 {
@@ -17,6 +18,7 @@ class Variant extends Model
         'sku',
         'barcode',
         'name',
+        'images',
         'cost_price',
         'is_active',
     ];
@@ -24,9 +26,21 @@ class Variant extends Model
     protected function casts(): array
     {
         return [
+            'images' => 'array',
             'cost_price' => 'decimal:2',
             'is_active' => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (Variant $variant) {
+            if ($variant->images) {
+                foreach ($variant->images as $image) {
+                    Storage::disk('public')->delete($image);
+                }
+            }
+        });
     }
 
     public function product(): BelongsTo

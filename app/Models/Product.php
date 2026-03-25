@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class Product extends Model
 {
@@ -16,6 +17,7 @@ class Product extends Model
     protected $fillable = [
         'name',
         'description',
+        'images',
         'category_id',
         'unit_of_measure',
         'is_active',
@@ -24,9 +26,21 @@ class Product extends Model
     protected function casts(): array
     {
         return [
+            'images' => 'array',
             'unit_of_measure' => UnitOfMeasure::class,
             'is_active' => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (Product $product) {
+            if ($product->images) {
+                foreach ($product->images as $image) {
+                    Storage::disk('public')->delete($image);
+                }
+            }
+        });
     }
 
     public function category(): BelongsTo
