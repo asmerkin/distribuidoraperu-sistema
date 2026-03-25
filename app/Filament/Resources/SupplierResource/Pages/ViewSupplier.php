@@ -16,6 +16,8 @@ class ViewSupplier extends ViewRecord
 {
     protected static string $resource = SupplierResource::class;
 
+    public ?string $activeRelationManager = null;
+
     public function getHeading(): string
     {
         return "Proveedor: {$this->getRecord()->name}";
