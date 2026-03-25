@@ -64,6 +64,14 @@ class ProductResource extends Resource
                 ))
                 ->required(),
 
+            Select::make('suppliers')
+                ->label('Proveedores')
+                ->relationship('suppliers', 'name')
+                ->multiple()
+                ->searchable()
+                ->preload()
+                ->columnSpan(2),
+
             Toggle::make('is_active')
                 ->label('Activo')
                 ->default(true)

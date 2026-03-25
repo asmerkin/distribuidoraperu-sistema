@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\SupplierResource\Pages;
 use App\Filament\Resources\SupplierResource\RelationManagers\InvoicesRelationManager;
+use App\Filament\Resources\SupplierResource\RelationManagers\ProductsRelationManager;
 use App\Filament\Resources\SupplierResource\RelationManagers\PaymentsRelationManager;
 use App\Filament\Resources\SupplierResource\RelationManagers\PurchaseOrdersRelationManager;
 use App\Models\Supplier;
@@ -170,6 +171,7 @@ class SupplierResource extends Resource
     public static function getRelations(): array
     {
         return [
+            ProductsRelationManager::class,
             InvoicesRelationManager::class,
             PurchaseOrdersRelationManager::class,
             PaymentsRelationManager::class,
