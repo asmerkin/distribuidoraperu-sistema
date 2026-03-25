@@ -3,8 +3,18 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\SupplierInvoiceResource\Pages;
+use App\Filament\Resources\SupplierInvoiceResource\RelationManagers\PaymentsRelationManager;
+use App\Models\PurchaseOrder;
+use App\Models\Supplier;
 use App\Models\SupplierInvoice;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -42,7 +52,67 @@ class SupplierInvoiceResource extends Resource
 
     public static function canCreate(): bool
     {
-        return false; // se crean desde el perfil del proveedor
+        return false;
+    }
+
+    public static function form(Schema $schema): Schema
+    {
+        return $schema->components([
+            TextInput::make('invoice_number')
+                ->label('N° Factura')
+                ->required()
+                ->maxLength(100),
+
+            Select::make('supplier_id')
+                ->label('Proveedor')
+                ->options(Supplier::orderBy('name')->pluck('name', 'id'))
+                ->searchable()
+                ->preload()
+                ->required()
+                ->disabled(),
+
+            Grid::make(2)->schema([
+                DatePicker::make('date')
+                    ->label('Fecha')
+                    ->required()
+                    ->displayFormat('d/m/Y'),
+
+                DatePicker::make('due_date')
+                    ->label('Vencimiento')
+                    ->displayFormat('d/m/Y'),
+            ]),
+
+            TextInput::make('total')
+                ->label('Total')
+                ->numeric()
+                ->prefix('$')
+                ->required()
+                ->minValue(0),
+
+            Select::make('purchase_order_id')
+                ->label('Orden de compra relacionada')
+                ->placeholder('Ninguna')
+                ->options(fn ($record) => $record
+                    ? PurchaseOrder::where('supplier_id', $record->supplier_id)
+                        ->orderByDesc('order_date')
+                        ->pluck('po_number', 'id')
+                    : []
+                )
+                ->searchable(),
+
+            FileUpload::make('attachment')
+                ->label('Adjunto (PDF, imagen)')
+                ->disk('public')
+                ->directory('supplier-invoices')
+                ->acceptedFileTypes(['application/pdf', 'image/*'])
+                ->maxSize(10240)
+                ->downloadable()
+                ->openable(),
+
+            Textarea::make('notes')
+                ->label('Notas')
+                ->rows(3),
+        ])->columns(1);
     }
 
     public static function table(Table $table): Table
@@ -111,23 +181,7 @@ class SupplierInvoiceResource extends Resource
                         'pagada' => 'Pagada',
                     ]),
             ])
-            ->recordUrl(fn ($record) => SupplierResource::getUrl('view', ['record' => $record->supplier_id]))
-            ->actions([
-                \Filament\Actions\ViewAction::make()
-                    ->modalHeading(fn ($record) => "Factura {$record->invoice_number}")
-                    ->infolist([
-                        \Filament\Infolists\Components\TextEntry::make('supplier.name')->label('Proveedor'),
-                        \Filament\Infolists\Components\TextEntry::make('invoice_number')->label('N° Factura'),
-                        \Filament\Infolists\Components\TextEntry::make('date')->label('Fecha')->date('d/m/Y'),
-                        \Filament\Infolists\Components\TextEntry::make('due_date')->label('Vencimiento')->date('d/m/Y')->placeholder('—'),
-                        \Filament\Infolists\Components\TextEntry::make('total')->label('Total')->money('ARS'),
-                        \Filament\Infolists\Components\TextEntry::make('amount_paid')->label('Pagado')->money('ARS'),
-                        \Filament\Infolists\Components\TextEntry::make('balance')->label('Saldo')->money('ARS')->state(fn ($record) => $record->balance),
-                        \Filament\Infolists\Components\TextEntry::make('display_status')->label('Estado')->badge()->state(fn ($record) => $record->display_status)->color(fn ($record) => $record->display_status_color),
-                        \Filament\Infolists\Components\TextEntry::make('purchaseOrder.po_number')->label('Orden de Compra')->placeholder('—'),
-                        \Filament\Infolists\Components\TextEntry::make('notes')->label('Notas')->placeholder('—'),
-                    ]),
-            ]);
+            ->recordUrl(fn ($record) => static::getUrl('view', ['record' => $record]));
     }
 
     public static function getEloquentQuery(): Builder
@@ -135,10 +189,19 @@ class SupplierInvoiceResource extends Resource
         return parent::getEloquentQuery()->with(['supplier', 'purchaseOrder']);
     }
 
+    public static function getRelations(): array
+    {
+        return [
+            PaymentsRelationManager::class,
+        ];
+    }
+
     public static function getPages(): array
     {
         return [
             'index' => Pages\ListSupplierInvoices::route('/'),
+            'view' => Pages\ViewSupplierInvoice::route('/{record}'),
+            'edit' => Pages\EditSupplierInvoice::route('/{record}/edit'),
         ];
     }
 }
