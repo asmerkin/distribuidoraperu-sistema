@@ -231,15 +231,7 @@ class PurchaseOrderResource extends Resource
                     ->options(Supplier::query()->orderBy('name')->pluck('name', 'id'))
                     ->searchable(),
             ])
-            ->recordAction('edit')
-            ->actions([
-                EditAction::make(),
-            ])
-            ->bulkActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
-            ]);
+;
     }
 
     public static function getGloballySearchableAttributes(): array
@@ -259,6 +251,13 @@ class PurchaseOrderResource extends Resource
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
         return parent::getEloquentQuery()->with(['supplier', 'location']);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            \App\Filament\Resources\PurchaseOrderResource\RelationManagers\ReceiptsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

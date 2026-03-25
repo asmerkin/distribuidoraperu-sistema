@@ -152,24 +152,6 @@ class ViewPurchaseOrder extends ViewRecord
                         ])
                         ->columns(6),
                 ]),
-            Section::make('Recepciones')
-                ->schema([
-                    \Filament\Infolists\Components\RepeatableEntry::make('receipts')
-                        ->label('')
-                        ->schema([
-                            TextEntry::make('received_at')->label('Fecha')->dateTime('d/m/Y H:i'),
-                            TextEntry::make('user.name')->label('Recibió')->placeholder('—'),
-                            \Filament\Infolists\Components\RepeatableEntry::make('items')
-                                ->label('Detalle')
-                                ->schema([
-                                    TextEntry::make('variant.sku')->label('SKU'),
-                                    TextEntry::make('quantity_received')->label('Cantidad'),
-                                    TextEntry::make('unit_cost')->label('Precio')->money('ARS'),
-                                ])
-                                ->columns(3),
-                        ]),
-                ])
-                ->visible(fn () => $record->receipts()->exists()),
         ])->columns(1);
     }
 
