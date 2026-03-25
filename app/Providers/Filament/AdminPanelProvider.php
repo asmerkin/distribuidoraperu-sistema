@@ -33,7 +33,24 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => [
+                    50 => '254, 242, 242',
+                    100 => '254, 226, 226',
+                    200 => '254, 202, 202',
+                    300 => '252, 165, 165',
+                    400 => '248, 113, 113',
+                    500 => '239, 68, 68',
+                    600 => '220, 38, 38',
+                    700 => '185, 28, 28',
+                    800 => '153, 27, 27',
+                    900 => '127, 29, 29',
+                    950 => '69, 10, 10',
+                ],
+                'success' => Color::Emerald,
+                'info' => Color::Sky,
+                'warning' => Color::Amber,
+                'danger' => Color::Rose,
+                'gray' => Color::Zinc,
             ])
             ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
             ->globalSearchFieldKeyBindingSuffix()
