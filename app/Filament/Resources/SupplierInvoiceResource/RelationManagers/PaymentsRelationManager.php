@@ -179,6 +179,41 @@ class PaymentsRelationManager extends RelationManager
                             ->success()
                             ->send();
                     }),
+
+                Action::make('eliminar')
+                    ->label('Eliminar')
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('Eliminar pago')
+                    ->modalDescription('El monto se restará del total pagado de la factura. ¿Continuar?')
+                    ->action(function ($record) {
+                        $invoice = $record->invoice;
+                        $amount = (float) $record->amount;
+
+                        if (filled($record->attachment)) {
+                            \Illuminate\Support\Facades\Storage::disk('public')->delete($record->attachment);
+                        }
+
+                        $record->delete();
+
+                        // Recalculate invoice amount_paid
+                        $newAmountPaid = max(0, (float) $invoice->amount_paid - $amount);
+                        $invoice->update([
+                            'amount_paid' => $newAmountPaid,
+                            'status' => $newAmountPaid >= (float) $invoice->total
+                                ? \App\Enums\SupplierInvoiceStatus::Pagada
+                                : ($newAmountPaid > 0
+                                    ? \App\Enums\SupplierInvoiceStatus::PagoParcial
+                                    : \App\Enums\SupplierInvoiceStatus::Impaga),
+                        ]);
+
+                        Notification::make()
+                            ->title('Pago eliminado')
+                            ->body('El estado de la factura fue actualizado.')
+                            ->success()
+                            ->send();
+                    }),
             ])
             ->headerActions([
                 Action::make('registrar_pago')

@@ -44,6 +44,7 @@ class ViewSupplierInvoice extends ViewRecord
                 ->icon('heroicon-o-truck')
                 ->color('gray')
                 ->url(fn () => SupplierResource::getUrl('view', ['record' => $record->supplier_id])),
+
         ];
     }
 
