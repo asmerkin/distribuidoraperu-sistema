@@ -11,8 +11,12 @@ return new class extends Migration
         Schema::create('categories', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->string('name');
-            $table->foreignUlid('parent_id')->nullable()->constrained('categories')->nullOnDelete();
+            $table->ulid('parent_id')->nullable();
             $table->timestamps();
+        });
+
+        Schema::table('categories', function (Blueprint $table) {
+            $table->foreign('parent_id')->references('id')->on('categories')->nullOnDelete();
         });
 
         Schema::create('locations', function (Blueprint $table) {
