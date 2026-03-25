@@ -8,6 +8,8 @@ use App\Models\Location;
 use App\Models\Product;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
+use App\Models\PurchaseOrderReceipt;
+use App\Models\PurchaseOrderReceiptItem;
 use App\Models\StockMovement;
 use App\Models\Supplier;
 use App\Models\Variant;
@@ -128,4 +130,92 @@ it('handles partial reception', function () {
     expect($level->quantity)->toBe(10);
 
     expect(StockMovement::count())->toBe(2);
+});
+
+it('updates PO item and variant cost when price differs at reception', function () {
+    $po = PurchaseOrder::create([
+        'supplier_id' => $this->supplier->id,
+        'location_id' => $this->location->id,
+        'status' => PurchaseOrderStatus::Enviada,
+        'order_date' => today(),
+        'total' => 1000,
+    ]);
+
+    $item = PurchaseOrderItem::create([
+        'purchase_order_id' => $po->id,
+        'variant_id' => $this->variant->id,
+        'quantity_ordered' => 10,
+        'quantity_received' => 0,
+        'unit_cost' => 100,
+        'subtotal' => 1000,
+    ]);
+
+    $inventory = app(InventoryService::class);
+    $confirmedPrice = 120;
+
+    // Simulate reception with different price
+    $item->increment('quantity_received', 10);
+    $item->update([
+        'unit_cost' => $confirmedPrice,
+        'subtotal' => $item->quantity_ordered * $confirmedPrice,
+    ]);
+    $this->variant->update(['cost_price' => $confirmedPrice]);
+
+    $inventory->recordMovement(
+        variant: $this->variant,
+        location: $this->location,
+        type: StockMovementType::Entrada,
+        reason: StockMovementReason::Compra,
+        quantity: 10,
+        reference: $po,
+    );
+
+    $item->refresh();
+    $this->variant->refresh();
+
+    expect($item->unit_cost)->toBe('120.00');
+    expect($item->subtotal)->toBe('1200.00');
+    expect($this->variant->cost_price)->toBe('120.00');
+});
+
+it('creates receipt records with items', function () {
+    $po = PurchaseOrder::create([
+        'supplier_id' => $this->supplier->id,
+        'location_id' => $this->location->id,
+        'status' => PurchaseOrderStatus::Enviada,
+        'order_date' => today(),
+        'total' => 1000,
+    ]);
+
+    $item = PurchaseOrderItem::create([
+        'purchase_order_id' => $po->id,
+        'variant_id' => $this->variant->id,
+        'quantity_ordered' => 10,
+        'quantity_received' => 0,
+        'unit_cost' => 100,
+        'subtotal' => 1000,
+    ]);
+
+    // Create receipt record
+    $receipt = PurchaseOrderReceipt::create([
+        'purchase_order_id' => $po->id,
+        'received_at' => now(),
+        'user_id' => null,
+    ]);
+
+    PurchaseOrderReceiptItem::create([
+        'purchase_order_receipt_id' => $receipt->id,
+        'purchase_order_item_id' => $item->id,
+        'variant_id' => $this->variant->id,
+        'quantity_received' => 6,
+        'unit_cost' => 100,
+    ]);
+
+    expect($po->receipts()->count())->toBe(1);
+    expect($receipt->items()->count())->toBe(1);
+
+    $receiptItem = $receipt->items()->first();
+    expect($receiptItem->quantity_received)->toBe(6);
+    expect($receiptItem->unit_cost)->toBe('100.00');
+    expect($receiptItem->variant_id)->toBe($this->variant->id);
 });

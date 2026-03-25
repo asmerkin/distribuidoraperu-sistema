@@ -7,6 +7,8 @@ use App\Enums\StockMovementReason;
 use App\Enums\StockMovementType;
 use App\Filament\Resources\PurchaseOrderResource;
 use App\Filament\Resources\SupplierResource;
+use App\Models\PurchaseOrderReceipt;
+use App\Models\PurchaseOrderReceiptItem;
 use App\Services\InventoryService;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
@@ -112,32 +114,29 @@ class ViewPurchaseOrder extends ViewRecord
         return $schema->components([
             Section::make('Detalle de la orden')
                 ->schema([
-                    Grid::make(3)->schema([
-                        TextEntry::make('po_number')->label('N° Orden')->weight(FontWeight::Bold),
-                        TextEntry::make('supplier.name')->label('Proveedor'),
-                        TextEntry::make('status')
-                            ->label('Estado')
-                            ->badge()
-                            ->formatStateUsing(fn (PurchaseOrderStatus $state) => $state->label())
-                            ->color(fn (PurchaseOrderStatus $state) => match ($state) {
-                                PurchaseOrderStatus::Borrador => 'gray',
-                                PurchaseOrderStatus::Enviada => 'info',
-                                PurchaseOrderStatus::RecibidaParcial => 'warning',
-                                PurchaseOrderStatus::Recibida => 'success',
-                                PurchaseOrderStatus::Cancelada => 'danger',
-                            }),
-                    ]),
-                    Grid::make(3)->schema([
-                        TextEntry::make('location.name')->label('Destino'),
-                        TextEntry::make('order_date')->label('Fecha de orden')->date('d/m/Y'),
-                        TextEntry::make('expected_date')->label('Entrega estimada')->date('d/m/Y')->placeholder('—'),
-                    ]),
-                    Grid::make(3)->schema([
-                        TextEntry::make('total')->label('Total')->money('ARS')->weight(FontWeight::Bold),
-                        TextEntry::make('sent_at')->label('Enviada')->dateTime('d/m/Y H:i')->placeholder('No enviada'),
-                        TextEntry::make('user.name')->label('Creada por')->placeholder('—'),
-                    ]),
-                ]),
+                    TextEntry::make('po_number')->label('N° Orden')->weight(FontWeight::Bold),
+                    TextEntry::make('supplier.name')->label('Proveedor'),
+                    TextEntry::make('status')
+                        ->label('Estado')
+                        ->badge()
+                        ->formatStateUsing(fn (PurchaseOrderStatus $state) => $state->label())
+                        ->color(fn (PurchaseOrderStatus $state) => match ($state) {
+                            PurchaseOrderStatus::Borrador => 'gray',
+                            PurchaseOrderStatus::Enviada => 'info',
+                            PurchaseOrderStatus::RecibidaParcial => 'warning',
+                            PurchaseOrderStatus::Recibida => 'success',
+                            PurchaseOrderStatus::Cancelada => 'danger',
+                        }),
+                    TextEntry::make('location.name')->label('Destino'),
+                    TextEntry::make('order_date')->label('Fecha de orden')->date('d/m/Y'),
+                    TextEntry::make('expected_date')->label('Entrega estimada')->date('d/m/Y')->placeholder('—'),
+                    TextEntry::make('total')->label('Total')->money('ARS')->weight(FontWeight::Bold),
+                    TextEntry::make('sent_at')->label('Enviada')->dateTime('d/m/Y H:i')->placeholder('No enviada'),
+                    TextEntry::make('user.name')->label('Creada por')->placeholder('—'),
+                    TextEntry::make('notes')->label('Notas internas')->placeholder('—')->columnSpanFull(),
+                    TextEntry::make('notes_for_supplier')->label('Notas para el proveedor')->placeholder('—')->columnSpanFull(),
+                ])
+                ->columns(2),
 
             Section::make('Productos')
                 ->schema([
@@ -153,15 +152,25 @@ class ViewPurchaseOrder extends ViewRecord
                         ])
                         ->columns(6),
                 ]),
-
-            Section::make('Notas')
+            Section::make('Recepciones')
                 ->schema([
-                    TextEntry::make('notes')->label('Notas internas')->placeholder('—'),
-                    TextEntry::make('notes_for_supplier')->label('Notas para el proveedor')->placeholder('—'),
+                    \Filament\Infolists\Components\RepeatableEntry::make('receipts')
+                        ->label('')
+                        ->schema([
+                            TextEntry::make('received_at')->label('Fecha')->dateTime('d/m/Y H:i'),
+                            TextEntry::make('user.name')->label('Recibió')->placeholder('—'),
+                            \Filament\Infolists\Components\RepeatableEntry::make('items')
+                                ->label('Detalle')
+                                ->schema([
+                                    TextEntry::make('variant.sku')->label('SKU'),
+                                    TextEntry::make('quantity_received')->label('Cantidad'),
+                                    TextEntry::make('unit_cost')->label('Precio')->money('ARS'),
+                                ])
+                                ->columns(3),
+                        ]),
                 ])
-                ->collapsible()
-                ->visible(fn () => filled($record->notes) || filled($record->notes_for_supplier)),
-        ]);
+                ->visible(fn () => $record->receipts()->exists()),
+        ])->columns(1);
     }
 
     private function buildReceiveFormFields(): array
@@ -185,13 +194,22 @@ class ViewPurchaseOrder extends ViewRecord
             $fields[] = \Filament\Schemas\Components\Section::make($label)
                 ->description("Pedido: {$item->quantity_ordered} | Recibido: {$item->quantity_received} | Pendiente: {$pending}")
                 ->schema([
-                    TextInput::make("qty_{$item->id}")
-                        ->label('Recibir ahora')
-                        ->integer()
-                        ->default(0)
-                        ->minValue(0)
-                        ->maxValue($pending)
-                        ->suffix("/ {$pending} pendientes"),
+                    \Filament\Schemas\Components\Grid::make(2)->schema([
+                        TextInput::make("qty_{$item->id}")
+                            ->label('Cantidad a recibir')
+                            ->integer()
+                            ->default(0)
+                            ->minValue(0)
+                            ->maxValue($pending)
+                            ->suffix("/ {$pending}"),
+
+                        TextInput::make("price_{$item->id}")
+                            ->label('Precio unitario')
+                            ->numeric()
+                            ->prefix('$')
+                            ->default($item->unit_cost)
+                            ->minValue(0),
+                    ]),
                 ])
                 ->compact();
         }
@@ -211,6 +229,7 @@ class ViewPurchaseOrder extends ViewRecord
         $inventory = app(InventoryService::class);
 
         $anyReceived = false;
+        $receiptItems = [];
 
         foreach ($record->items as $item) {
             $qty = (int) ($data["qty_{$item->id}"] ?? 0);
@@ -224,10 +243,24 @@ class ViewPurchaseOrder extends ViewRecord
                 continue;
             }
 
+            $confirmedPrice = (float) ($data["price_{$item->id}"] ?? $item->unit_cost);
             $anyReceived = true;
 
+            // Update PO item
             $item->increment('quantity_received', $qty);
 
+            // Update price if different
+            if ($confirmedPrice != (float) $item->unit_cost) {
+                $item->update([
+                    'unit_cost' => $confirmedPrice,
+                    'subtotal' => $item->quantity_ordered * $confirmedPrice,
+                ]);
+            }
+
+            // Update variant cost price
+            $item->variant->update(['cost_price' => $confirmedPrice]);
+
+            // Create stock movement
             $inventory->recordMovement(
                 variant: $item->variant,
                 location: $record->location,
@@ -239,7 +272,13 @@ class ViewPurchaseOrder extends ViewRecord
                 userId: auth()->id(),
             );
 
-            $item->variant->update(['cost_price' => $item->unit_cost]);
+            // Collect for receipt record
+            $receiptItems[] = [
+                'purchase_order_item_id' => $item->id,
+                'variant_id' => $item->variant->id,
+                'quantity_received' => $qty,
+                'unit_cost' => $confirmedPrice,
+            ];
         }
 
         if (! $anyReceived) {
@@ -252,6 +291,21 @@ class ViewPurchaseOrder extends ViewRecord
             return;
         }
 
+        // Create receipt record
+        $receipt = PurchaseOrderReceipt::create([
+            'purchase_order_id' => $record->id,
+            'received_at' => now(),
+            'user_id' => auth()->id(),
+        ]);
+
+        foreach ($receiptItems as $receiptItem) {
+            PurchaseOrderReceiptItem::create([
+                'purchase_order_receipt_id' => $receipt->id,
+                ...$receiptItem,
+            ]);
+        }
+
+        // Update PO status and total
         $record->refresh()->load('items');
         $allReceived = $record->items->every(
             fn ($item) => $item->quantity_received >= $item->quantity_ordered,
