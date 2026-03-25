@@ -25,4 +25,25 @@ class Supplier extends Model
     {
         return $this->hasMany(PurchaseOrder::class);
     }
+
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(SupplierInvoice::class);
+    }
+
+    public function payments(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
+    {
+        return $this->hasManyThrough(SupplierPayment::class, SupplierInvoice::class);
+    }
+
+    public function getTotalOwedAttribute(): float
+    {
+        return round(
+            (float) $this->invoices()
+                ->where('status', '!=', 'pagada')
+                ->selectRaw('COALESCE(SUM(total - amount_paid), 0) as owed')
+                ->value('owed'),
+            2,
+        );
+    }
 }

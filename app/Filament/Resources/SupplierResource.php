@@ -3,6 +3,9 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\SupplierResource\Pages;
+use App\Filament\Resources\SupplierResource\RelationManagers\InvoicesRelationManager;
+use App\Filament\Resources\SupplierResource\RelationManagers\PaymentsRelationManager;
+use App\Filament\Resources\SupplierResource\RelationManagers\PurchaseOrdersRelationManager;
 use App\Models\Supplier;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -27,6 +30,22 @@ class SupplierResource extends Resource
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-truck';
 
     protected static string | \UnitEnum | null $navigationGroup = 'Compras';
+
+    protected static ?string $recordTitleAttribute = 'name';
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['name', 'tax_id', 'contact_name', 'email'];
+    }
+
+    public static function getGlobalSearchResultDetails(\Illuminate\Database\Eloquent\Model $record): array
+    {
+        return array_filter([
+            'CUIT' => $record->tax_id,
+            'Contacto' => $record->contact_name,
+            'Email' => $record->email,
+        ]);
+    }
 
     protected static ?int $navigationSort = 2;
 
@@ -83,7 +102,7 @@ class SupplierResource extends Resource
                         ->rows(3)
                         ->columnSpanFull(),
                 ])
-                ->collapsed(),
+                ->collapsible(),
         ]);
     }
 
@@ -130,7 +149,7 @@ class SupplierResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('name')
-            ->recordAction('edit')
+            ->recordUrl(fn ($record) => static::getUrl('view', ['record' => $record]))
             ->actions([
                 EditAction::make(),
             ])
@@ -141,11 +160,28 @@ class SupplierResource extends Resource
             ]);
     }
 
+    public static function getWidgets(): array
+    {
+        return [
+            \App\Filament\Resources\SupplierResource\Widgets\SupplierStatsWidget::class,
+        ];
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            InvoicesRelationManager::class,
+            PurchaseOrdersRelationManager::class,
+            PaymentsRelationManager::class,
+        ];
+    }
+
     public static function getPages(): array
     {
         return [
             'index' => Pages\ListSuppliers::route('/'),
             'create' => Pages\CreateSupplier::route('/create'),
+            'view' => Pages\ViewSupplier::route('/{record}'),
             'edit' => Pages\EditSupplier::route('/{record}/edit'),
         ];
     }

@@ -241,6 +241,20 @@ class PurchaseOrderResource extends Resource
             ]);
     }
 
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['po_number', 'supplier.name'];
+    }
+
+    public static function getGlobalSearchResultDetails(\Illuminate\Database\Eloquent\Model $record): array
+    {
+        return array_filter([
+            'Proveedor' => $record->supplier?->name,
+            'Estado' => $record->status->label(),
+            'Total' => '$ ' . number_format((float) $record->total, 2, ',', '.'),
+        ]);
+    }
+
     public static function getPages(): array
     {
         return [
