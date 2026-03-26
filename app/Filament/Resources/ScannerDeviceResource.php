@@ -5,12 +5,12 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ScannerDeviceResource\Pages;
 use App\Models\ScannerDevice;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Table;
@@ -67,6 +67,13 @@ class ScannerDeviceResource extends Resource
                     ->label('Ubicación')
                     ->sortable(),
 
+                TextColumn::make('user_agent')
+                    ->label('Dispositivo')
+                    ->formatStateUsing(fn (ScannerDevice $record) => $record->deviceLabel())
+                    ->placeholder('Sin vincular')
+                    ->icon('heroicon-o-device-phone-mobile')
+                    ->toggleable(),
+
                 ToggleColumn::make('is_active')
                     ->label('Activo')
                     ->sortable(),
@@ -85,14 +92,9 @@ class ScannerDeviceResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('name')
-            ->recordAction('edit')
+            ->recordAction('view')
             ->actions([
-                Action::make('generateQr')
-                    ->label('Generar QR')
-                    ->icon('heroicon-o-qr-code')
-                    ->color('info')
-                    ->url(fn (ScannerDevice $record) => static::getUrl('qr', ['record' => $record])),
-
+                ViewAction::make(),
                 EditAction::make(),
             ]);
     }
@@ -102,6 +104,7 @@ class ScannerDeviceResource extends Resource
         return [
             'index' => Pages\ListScannerDevices::route('/'),
             'create' => Pages\CreateScannerDevice::route('/create'),
+            'view' => Pages\ViewScannerDevice::route('/{record}'),
             'edit' => Pages\EditScannerDevice::route('/{record}/edit'),
             'qr' => Pages\ShowScannerDeviceQr::route('/{record}/qr'),
         ];

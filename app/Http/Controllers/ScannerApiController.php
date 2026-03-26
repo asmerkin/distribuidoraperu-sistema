@@ -39,6 +39,7 @@ class ScannerApiController extends Controller
             'token' => hash('sha256', $rawToken),
             'otp' => null,
             'otp_expires_at' => null,
+            'user_agent' => $request->userAgent(),
         ]);
 
         return response()->json([
@@ -149,6 +150,7 @@ class ScannerApiController extends Controller
             type: StockMovementType::Adjustment,
             reason: StockMovementReason::StockCount,
             quantity: $diff,
+            reference: $device,
             notes: 'Conteo fisico (scanner)',
         );
 
@@ -186,6 +188,7 @@ class ScannerApiController extends Controller
             type: $type,
             reason: StockMovementReason::StockCount,
             quantity: abs($qty),
+            reference: $device,
             notes: 'Ajuste rapido (scanner)',
         );
 

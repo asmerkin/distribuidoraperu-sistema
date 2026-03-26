@@ -10,10 +10,18 @@ class EditScannerDevice extends EditRecord
 {
     protected static string $resource = ScannerDeviceResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getRedirectUrl(): string
+    {
+        return ScannerDeviceResource::getUrl('view', ['record' => $this->getRecord()]);
+    }
+
+    protected function getFormActions(): array
     {
         return [
-            DeleteAction::make(),
+            ...parent::getFormActions(),
+            DeleteAction::make()
+                ->label('Eliminar dispositivo')
+                ->link(),
         ];
     }
 }
