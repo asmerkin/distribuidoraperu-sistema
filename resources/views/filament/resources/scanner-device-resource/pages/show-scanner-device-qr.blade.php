@@ -36,27 +36,29 @@
         </x-filament::section>
     </div>
 
-    @push('scripts')
+    @assets
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+    @endassets
+
+    @script
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const qrData = @js($qrData);
-            const container = document.getElementById('qr-code');
+        const qrData = @js($qrData);
+        const container = document.getElementById('qr-code');
 
-            if (container && typeof QRCode !== 'undefined') {
-                const canvas = document.createElement('canvas');
-                container.appendChild(canvas);
+        if (container && typeof QRCode !== 'undefined') {
+            container.innerHTML = '';
+            const canvas = document.createElement('canvas');
+            container.appendChild(canvas);
 
-                QRCode.toCanvas(canvas, qrData, {
-                    width: 280,
-                    margin: 2,
-                    color: {
-                        dark: '#000000',
-                        light: '#ffffff',
-                    },
-                });
-            }
-        });
+            QRCode.toCanvas(canvas, qrData, {
+                width: 360,
+                margin: 2,
+                color: {
+                    dark: '#000000',
+                    light: '#ffffff',
+                },
+            });
+        }
     </script>
-    @endpush
+    @endscript
 </x-filament-panels::page>
