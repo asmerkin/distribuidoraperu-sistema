@@ -185,6 +185,87 @@ it('submits stock adjustment', function () {
     expect($level->quantity)->toBe(7);
 });
 
+it('submits positive quick adjustment', function () {
+    [$device, $token] = createAuthenticatedDevice();
+
+    InventoryLevel::create([
+        'variant_id' => $this->variant->id,
+        'location_id' => $this->location->id,
+        'quantity' => 10,
+    ]);
+
+    $response = $this->postJson('/api/scanner/quick-adjust', [
+        'variant_id' => $this->variant->id,
+        'quantity' => 5,
+    ], [
+        'Authorization' => "Bearer {$token}",
+    ]);
+
+    $response->assertOk()
+        ->assertJson([
+            'previous_stock' => 10,
+            'adjustment' => 5,
+            'new_stock' => 15,
+        ]);
+
+    $movement = StockMovement::first();
+    expect($movement->quantity)->toBe(5);
+    expect($movement->type->value)->toBe('in');
+    expect($movement->reason->value)->toBe('stock_count');
+
+    $level = InventoryLevel::where('variant_id', $this->variant->id)
+        ->where('location_id', $this->location->id)
+        ->first();
+    expect($level->quantity)->toBe(15);
+});
+
+it('submits negative quick adjustment', function () {
+    [$device, $token] = createAuthenticatedDevice();
+
+    InventoryLevel::create([
+        'variant_id' => $this->variant->id,
+        'location_id' => $this->location->id,
+        'quantity' => 10,
+    ]);
+
+    $response = $this->postJson('/api/scanner/quick-adjust', [
+        'variant_id' => $this->variant->id,
+        'quantity' => -3,
+    ], [
+        'Authorization' => "Bearer {$token}",
+    ]);
+
+    $response->assertOk()
+        ->assertJson([
+            'previous_stock' => 10,
+            'adjustment' => -3,
+            'new_stock' => 7,
+        ]);
+
+    $movement = StockMovement::first();
+    expect($movement->quantity)->toBe(3);
+    expect($movement->type->value)->toBe('out');
+    expect($movement->reason->value)->toBe('stock_count');
+
+    $level = InventoryLevel::where('variant_id', $this->variant->id)
+        ->where('location_id', $this->location->id)
+        ->first();
+    expect($level->quantity)->toBe(7);
+});
+
+it('rejects zero quick adjustment', function () {
+    [$device, $token] = createAuthenticatedDevice();
+
+    $response = $this->postJson('/api/scanner/quick-adjust', [
+        'variant_id' => $this->variant->id,
+        'quantity' => 0,
+    ], [
+        'Authorization' => "Bearer {$token}",
+    ]);
+
+    $response->assertUnprocessable();
+});
+
 it('handles zero difference adjustment', function () {
     [$device, $token] = createAuthenticatedDevice();
 

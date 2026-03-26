@@ -160,4 +160,40 @@ class ScannerApiController extends Controller
             'new_stock' => $counted,
         ]);
     }
+
+    public function quickAdjust(Request $request, InventoryService $inventoryService): JsonResponse
+    {
+        $request->validate([
+            'variant_id' => 'required|string|exists:variants,id',
+            'quantity' => 'required|integer|not_in:0',
+        ]);
+
+        $device = auth('scanner')->user();
+        $variant = Variant::findOrFail($request->variant_id);
+        $location = $device->location;
+
+        $currentStock = InventoryLevel::where('variant_id', $variant->id)
+            ->where('location_id', $location->id)
+            ->first()?->quantity ?? 0;
+
+        $qty = (int) $request->quantity;
+
+        $type = $qty > 0 ? StockMovementType::In : StockMovementType::Out;
+
+        $inventoryService->recordMovement(
+            variant: $variant,
+            location: $location,
+            type: $type,
+            reason: StockMovementReason::StockCount,
+            quantity: abs($qty),
+            notes: 'Ajuste rapido (scanner)',
+        );
+
+        return response()->json([
+            'message' => $qty > 0 ? "Se agregaron $qty unidades" : 'Se quitaron ' . abs($qty) . ' unidades',
+            'previous_stock' => $currentStock,
+            'adjustment' => $qty,
+            'new_stock' => $currentStock + $qty,
+        ]);
+    }
 }

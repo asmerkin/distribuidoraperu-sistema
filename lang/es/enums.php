@@ -25,11 +25,6 @@ return [
         'transfer_out' => 'Transferencia (salida)',
     ],
 
-    'stock_count_status' => [
-        'in_progress' => 'En progreso',
-        'completed' => 'Completado',
-    ],
-
     'unit_of_measure' => [
         'unit' => 'Unidad',
         'box' => 'Caja',

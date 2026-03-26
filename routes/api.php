@@ -9,4 +9,5 @@ Route::middleware('auth:scanner')->prefix('scanner')->group(function () {
     Route::get('/device', [ScannerApiController::class, 'device']);
     Route::get('/lookup', [ScannerApiController::class, 'lookup']);
     Route::post('/adjust', [ScannerApiController::class, 'adjust']);
+    Route::post('/quick-adjust', [ScannerApiController::class, 'quickAdjust']);
 });

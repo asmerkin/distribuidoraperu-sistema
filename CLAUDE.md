@@ -76,7 +76,7 @@ InventoryLevel belongsTo Variant + Location
 - Historial inmutable — se crean ajustes compensatorios para corregir
 - Transferencias generan 2 movimientos: salida en origin + entrada en destino
 
-**Funcionalidades:** Conteo físico (StockCountPage), Transferencias (StockTransferPage), Historial de movimientos (StockMovementHistory)
+**Funcionalidades:** Conteo físico (PWA Scanner — ver sección PWA), Transferencias (StockTransferPage), Historial de movimientos (StockMovementHistory), Ajuste rápido por variante (InventoryRelationManager en ProductResource)
 
 ### 3. Compras — Purchase Orders
 

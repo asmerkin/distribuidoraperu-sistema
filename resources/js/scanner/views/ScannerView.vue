@@ -2,6 +2,28 @@
     <div class="p-4 max-w-lg mx-auto space-y-4">
         <!-- Idle state -->
         <template v-if="!variant && !scanning && !loading">
+            <!-- Mode toggle -->
+            <div class="flex bg-zinc-100 rounded-xl p-1 gap-1">
+                <button
+                    @click="mode = 'count'"
+                    class="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all"
+                    :class="mode === 'count'
+                        ? 'bg-white text-zinc-900 shadow-sm'
+                        : 'text-zinc-500 active:text-zinc-700'"
+                >
+                    Conteo
+                </button>
+                <button
+                    @click="mode = 'adjust'"
+                    class="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all"
+                    :class="mode === 'adjust'
+                        ? 'bg-white text-zinc-900 shadow-sm'
+                        : 'text-zinc-500 active:text-zinc-700'"
+                >
+                    Ajuste
+                </button>
+            </div>
+
             <button
                 @click="startScanning"
                 class="w-full h-20 bg-gradient-to-b from-red-600 to-red-700 text-white rounded-2xl font-bold text-xl active:scale-[0.98] transition-all shadow-lg shadow-red-600/20 flex items-center justify-center gap-3"
@@ -56,9 +78,16 @@
             <div v-if="variant && !loading" class="space-y-4">
                 <ProductCard :variant="variant" />
                 <AdjustForm
+                    v-if="mode === 'count'"
                     :current-stock="variant.current_stock"
                     :submitting="submitting"
                     @confirm="submitAdjustment"
+                    @cancel="reset"
+                />
+                <QuickAdjustForm
+                    v-else
+                    :submitting="submitting"
+                    @confirm="submitQuickAdjust"
                     @cancel="reset"
                 />
             </div>
@@ -113,7 +142,9 @@ import api from '../api'
 import BarcodeScanner from '../components/BarcodeScanner.vue'
 import ProductCard from '../components/ProductCard.vue'
 import AdjustForm from '../components/AdjustForm.vue'
+import QuickAdjustForm from '../components/QuickAdjustForm.vue'
 
+const mode = ref('count')
 const scanning = ref(false)
 const loading = ref(false)
 const submitting = ref(false)
@@ -185,6 +216,46 @@ async function submitAdjustment(countedQuantity) {
         variant.value = null
 
         // Auto-dismiss after 2.5s
+        setTimeout(() => {
+            lastResult.value = null
+        }, 2500)
+    } catch (err) {
+        error.value = err.response?.data?.message || 'Error al ajustar stock'
+    } finally {
+        submitting.value = false
+    }
+}
+
+async function submitQuickAdjust(delta) {
+    if (!variant.value) return
+
+    submitting.value = true
+    error.value = ''
+
+    try {
+        const { data } = await api.post('/quick-adjust', {
+            variant_id: variant.value.id,
+            quantity: delta,
+        })
+
+        lastResult.value = {
+            message: data.message,
+            previous_stock: data.previous_stock,
+            counted: data.new_stock,
+            diff: data.adjustment,
+        }
+
+        history.unshift({
+            sku: variant.value.sku,
+            product_name: variant.value.product_name,
+            previous_stock: data.previous_stock,
+            counted: data.new_stock,
+            diff: data.adjustment,
+            timestamp: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+        })
+
+        variant.value = null
+
         setTimeout(() => {
             lastResult.value = null
         }, 2500)
