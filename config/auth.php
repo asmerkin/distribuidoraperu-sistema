@@ -42,6 +42,10 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        'scanner' => [
+            'driver' => 'scanner-token',
+        ],
     ],
 
     /*

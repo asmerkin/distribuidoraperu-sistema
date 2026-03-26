@@ -1,0 +1,162 @@
+@import 'tailwindcss';
+@source '../js/scanner/**/*.vue';
+
+@theme {
+    --font-sans: 'DM Sans', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* ── View transitions ── */
+.view-enter-active {
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.view-leave-active {
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.view-enter-from {
+    opacity: 0;
+    transform: translateY(12px);
+}
+.view-leave-to {
+    opacity: 0;
+    transform: translateY(-8px);
+}
+
+/* ── Slide up (for cards) ── */
+.slide-up-enter-active {
+    transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.slide-up-leave-active {
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.slide-up-enter-from {
+    opacity: 0;
+    transform: translateY(24px);
+}
+.slide-up-leave-to {
+    opacity: 0;
+    transform: translateY(-12px);
+}
+
+/* ── Fade ── */
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+}
+
+/* ── Scanning line animation ── */
+@keyframes scan-sweep {
+    0%, 100% { top: 15%; }
+    50% { top: 80%; }
+}
+.scan-line {
+    animation: scan-sweep 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ── Pulse glow (for scan button) ── */
+@keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+    50% { box-shadow: 0 0 0 16px rgba(220, 38, 38, 0); }
+}
+.pulse-glow {
+    animation: pulse-glow 2.5s ease-in-out infinite;
+}
+
+/* ── Success checkmark ── */
+@keyframes check-pop {
+    0% { transform: scale(0) rotate(-45deg); opacity: 0; }
+    50% { transform: scale(1.2) rotate(0deg); opacity: 1; }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.check-pop {
+    animation: check-pop 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ── Shake (for errors) ── */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 50%, 90% { transform: translateX(-4px); }
+    30%, 70% { transform: translateX(4px); }
+}
+.shake {
+    animation: shake 0.4s ease-in-out;
+}
+
+/* ── Stagger children animation ── */
+.stagger-item {
+    animation: slide-up-fade 0.3s ease both;
+}
+@keyframes slide-up-fade {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ── Scanner viewfinder ── */
+.viewfinder-container {
+    position: relative;
+    overflow: hidden;
+    border-radius: 1rem;
+}
+
+.viewfinder-container video {
+    border-radius: 1rem;
+}
+
+.viewfinder-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.viewfinder-corner {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    border-color: #dc2626;
+    border-width: 3px;
+}
+.viewfinder-corner--tl { top: 20%; left: 12%; border-right: none; border-bottom: none; border-radius: 4px 0 0 0; }
+.viewfinder-corner--tr { top: 20%; right: 12%; border-left: none; border-bottom: none; border-radius: 0 4px 0 0; }
+.viewfinder-corner--bl { bottom: 20%; left: 12%; border-right: none; border-top: none; border-radius: 0 0 0 4px; }
+.viewfinder-corner--br { bottom: 20%; right: 12%; border-left: none; border-top: none; border-radius: 0 0 4px 0; }
+
+/* ── html5-qrcode overrides ── */
+#html5-qrcode-button-camera-permission,
+#html5-qrcode-button-camera-stop,
+#html5-qrcode-button-camera-start {
+    display: none !important;
+}
+
+/* ── Safe areas for PWA ── */
+.safe-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 0.5rem);
+}
+.safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* ── Tap highlight ── */
+button, a {
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Number input: hide spinners ── */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+input[type="number"] {
+    -moz-appearance: textfield;
+}
