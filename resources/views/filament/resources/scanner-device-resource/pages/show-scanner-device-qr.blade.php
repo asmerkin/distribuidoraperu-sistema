@@ -36,10 +36,6 @@
         </x-filament::section>
     </div>
 
-    @assets
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
-    @endassets
-
     @script
     <script>
         const qrData = @js($qrData);
