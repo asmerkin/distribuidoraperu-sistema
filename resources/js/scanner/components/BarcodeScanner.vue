@@ -2,8 +2,14 @@
     <div class="viewfinder-container rounded-2xl bg-black">
         <div :id="scannerId" class="w-full"></div>
 
+        <!-- Loading placeholder (visible until camera stream starts) -->
+        <div v-if="!cameraReady" class="viewfinder-placeholder">
+            <div class="w-8 h-8 border-2 border-white/20 border-t-white/80 rounded-full animate-spin"></div>
+            <p class="text-white/50 text-xs mt-3 font-medium">Iniciando camara...</p>
+        </div>
+
         <!-- Viewfinder overlay -->
-        <div class="viewfinder-overlay">
+        <div v-if="cameraReady" class="viewfinder-overlay">
             <!-- Semi-transparent backdrop -->
             <div class="absolute inset-0 bg-black/30"></div>
 
@@ -21,7 +27,7 @@
         </div>
 
         <!-- Label -->
-        <div class="absolute bottom-3 inset-x-0 text-center z-20">
+        <div v-if="cameraReady" class="absolute bottom-3 inset-x-0 text-center z-20">
             <span class="text-white/80 text-xs font-medium bg-black/40 px-3 py-1 rounded-full backdrop-blur-sm">
                 {{ label }}
             </span>
@@ -50,6 +56,7 @@ const emit = defineEmits(['scanned', 'error'])
 
 const scannerId = `scanner-${Date.now()}`
 const error = ref('')
+const cameraReady = ref(false)
 let html5Qrcode = null
 
 onMounted(async () => {
@@ -70,6 +77,7 @@ onMounted(async () => {
             },
             () => {},
         )
+        cameraReady.value = true
     } catch (err) {
         error.value = 'No se pudo acceder a la camara. Verifica los permisos.'
         emit('error', err.message)

@@ -106,10 +106,21 @@
     position: relative;
     overflow: hidden;
     border-radius: 1rem;
+    aspect-ratio: 4 / 3;
 }
 
 .viewfinder-container video {
     border-radius: 1rem;
+}
+
+.viewfinder-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
 }
 
 .viewfinder-overlay {
