@@ -58,13 +58,15 @@
 
         <!-- Scanning state -->
         <template v-if="scanning">
-            <BarcodeScanner @scanned="onBarcodeScanned" @error="onScanError" />
-            <button
-                @click="scanning = false"
-                class="w-full py-3.5 bg-zinc-100 text-zinc-600 rounded-xl font-semibold border border-zinc-200 active:scale-[0.98] transition-all"
-            >
-                Cancelar
-            </button>
+            <div class="flex flex-col items-center gap-4">
+                <BarcodeScanner class="w-full" @scanned="onBarcodeScanned" @error="onScanError" />
+                <button
+                    @click="scanning = false"
+                    class="w-full py-3.5 bg-zinc-100 text-zinc-600 rounded-xl font-semibold border border-zinc-200 active:scale-[0.98] transition-all"
+                >
+                    Cancelar
+                </button>
+            </div>
         </template>
 
         <!-- Loading -->

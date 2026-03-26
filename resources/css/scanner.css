@@ -109,8 +109,24 @@
     aspect-ratio: 4 / 3;
 }
 
+/* Force html5-qrcode reader div to fill container */
+.viewfinder-container > div:first-child {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
 .viewfinder-container video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
     border-radius: 1rem;
+}
+
+/* Hide html5-qrcode built-in scanning box / shaded region */
+.viewfinder-container [id*="__scan_region"] {
+    display: none !important;
 }
 
 .viewfinder-placeholder {

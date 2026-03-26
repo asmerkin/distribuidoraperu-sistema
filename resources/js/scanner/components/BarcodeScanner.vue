@@ -1,6 +1,6 @@
 <template>
     <div class="viewfinder-container rounded-2xl bg-black">
-        <div :id="scannerId" class="w-full"></div>
+        <div :id="scannerId"></div>
 
         <!-- Loading placeholder (visible until camera stream starts) -->
         <div v-if="!cameraReady" class="viewfinder-placeholder">
