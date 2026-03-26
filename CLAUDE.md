@@ -20,6 +20,12 @@ Construir un sistema web de gestión de inventario con módulos de: Catálogo + 
 - **Deployment:** DigitalOcean App Platform
 - **Idioma:** Locale `es` (español), traducciones via `lang/es/`
 
+## Filament v5 — Cambios clave vs v3
+
+- **Actions:** Ya no existe `Filament\Tables\Actions\Action`. Todas las actions (tabla, header, form, etc.) usan `Filament\Actions\Action`, `Filament\Actions\EditAction`, `Filament\Actions\DeleteAction`, etc. desde el namespace `Filament\Actions\`.
+- **Schema:** `Filament\Forms\Form` se reemplazó por `Filament\Schemas\Schema`. El método en Resources sigue siendo `form(Schema $schema)` y `table(Schema $schema)`.
+- **Imports:** Siempre verificar que los imports usen los namespaces de Filament v5, no los de v3.
+
 ## Convenciones de Código
 
 - **IDs:** ULID (usa `HasUlids` trait)
