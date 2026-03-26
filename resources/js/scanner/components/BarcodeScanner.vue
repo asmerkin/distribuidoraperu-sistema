@@ -67,6 +67,7 @@ onMounted(async () => {
             { facingMode: 'environment' },
             {
                 fps: 10,
+                qrbox: { width: 250, height: 100 },
                 formatsToSupport: props.formats.length
                     ? props.formats
                     : undefined,

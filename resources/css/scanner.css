@@ -124,6 +124,11 @@
     border-radius: 1rem;
 }
 
+/* Hide html5-qrcode built-in scanning box (we use our own overlay) */
+#qr-shaded-region {
+    display: none !important;
+}
+
 .viewfinder-placeholder {
     position: absolute;
     inset: 0;
