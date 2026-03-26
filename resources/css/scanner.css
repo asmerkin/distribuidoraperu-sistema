@@ -124,11 +124,6 @@
     border-radius: 1rem;
 }
 
-/* Hide html5-qrcode built-in scanning box / shaded region */
-.viewfinder-container [id*="__scan_region"] {
-    display: none !important;
-}
-
 .viewfinder-placeholder {
     position: absolute;
     inset: 0;

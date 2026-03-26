@@ -1,5 +1,5 @@
 <template>
-    <div class="viewfinder-container rounded-2xl bg-black">
+    <div class="viewfinder-container w-full rounded-2xl bg-black">
         <div :id="scannerId"></div>
 
         <!-- Loading placeholder (visible until camera stream starts) -->
@@ -67,7 +67,6 @@ onMounted(async () => {
             { facingMode: 'environment' },
             {
                 fps: 10,
-                qrbox: { width: 250, height: 100 },
                 formatsToSupport: props.formats.length
                     ? props.formats
                     : undefined,
