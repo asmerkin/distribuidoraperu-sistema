@@ -301,14 +301,12 @@
     {{-- ══ CONDICIONES ══ --}}
     <table class="conditions-table">
         <tr>
-            <td class="cond-header" style="width: 33%;">Fecha de entrega</td>
-            <td class="cond-header" style="width: 34%;">Condición de pago</td>
-            <td class="cond-header" style="width: 33%;">Creado por</td>
+            <td class="cond-header" style="width: 50%;">Fecha de entrega</td>
+            <td class="cond-header" style="width: 50%;">Condición de pago</td>
         </tr>
         <tr>
             <td class="cond-value">{{ $purchaseOrder->expected_date ? $purchaseOrder->expected_date->format('d/m/Y') : '—' }}</td>
             <td class="cond-value">{{ $purchaseOrder->supplier->payment_terms ?: '—' }}</td>
-            <td class="cond-value">{{ $purchaseOrder->user?->name ?: '—' }}</td>
         </tr>
     </table>
 
