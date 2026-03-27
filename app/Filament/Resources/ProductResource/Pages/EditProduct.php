@@ -16,4 +16,9 @@ class EditProduct extends EditRecord
             DeleteAction::make(),
         ];
     }
+
+    public function getRelationManagers(): array
+    {
+        return [];
+    }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ProductResource\RelationManagers;
 
+use App\Filament\Resources\VariantResource;
 use App\Models\Variant;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -23,6 +24,11 @@ class VariantsRelationManager extends RelationManager
 
     protected static ?string $title = 'Variantes';
 
+    public function isReadOnly(): bool
+    {
+        return false;
+    }
+
     public function form(Schema $schema): Schema
     {
         return $schema->components([
@@ -39,12 +45,6 @@ class VariantsRelationManager extends RelationManager
             TextInput::make('barcode')
                 ->label('Código de Barras')
                 ->maxLength(255),
-
-            TextInput::make('cost_price')
-                ->label('Precio de Costo')
-                ->numeric()
-                ->prefix('$')
-                ->required(),
 
             FileUpload::make('images')
                 ->label('Imágenes')
@@ -69,6 +69,7 @@ class VariantsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->recordUrl(fn (Variant $record) => VariantResource::getUrl('view', ['record' => $record]))
             ->columns([
                 ImageColumn::make('images')
                     ->label('Foto')

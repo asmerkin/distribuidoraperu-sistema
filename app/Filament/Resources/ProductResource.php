@@ -4,8 +4,6 @@ namespace App\Filament\Resources;
 
 use App\Enums\UnitOfMeasure;
 use App\Filament\Resources\ProductResource\Pages;
-use App\Filament\Resources\ProductResource\RelationManagers\InventoryRelationManager;
-use App\Filament\Resources\ProductResource\RelationManagers\StockMovementsRelationManager;
 use App\Filament\Resources\ProductResource\RelationManagers\VariantsRelationManager;
 use App\Models\Category;
 use App\Models\Product;
@@ -80,14 +78,6 @@ class ProductResource extends Resource
                 ))
                 ->required(),
 
-            Select::make('suppliers')
-                ->label('Proveedores')
-                ->relationship('suppliers', 'name')
-                ->multiple()
-                ->searchable()
-                ->preload()
-                ->columnSpan(2),
-
             Toggle::make('is_active')
                 ->label('Activo')
                 ->default(true)
@@ -161,8 +151,6 @@ class ProductResource extends Resource
     {
         return [
             VariantsRelationManager::class,
-            InventoryRelationManager::class,
-            StockMovementsRelationManager::class,
         ];
     }
 

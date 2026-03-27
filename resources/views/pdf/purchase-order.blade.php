@@ -315,7 +315,7 @@
         <thead>
             <tr>
                 <th style="width: 5%;">#</th>
-                <th style="width: 13%;">SKU</th>
+                <th style="width: 13%;">Código</th>
                 <th style="width: 42%;">Descripción</th>
                 <th class="center" style="width: 10%;">Cant.</th>
                 <th class="right" style="width: 15%;">P/U</th>
@@ -326,7 +326,7 @@
             @foreach($purchaseOrder->items as $index => $item)
                 <tr>
                     <td>{{ $index + 1 }}</td>
-                    <td>{{ $item->variant->sku }}</td>
+                    <td>{{ ($supplierCodes[$item->variant_id] ?? null) ?: $item->variant->sku }}</td>
                     <td>
                         {{ $item->variant->product->name }}
                         @if($item->variant->name !== 'Default')

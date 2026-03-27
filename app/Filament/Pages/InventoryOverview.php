@@ -92,7 +92,7 @@ class InventoryOverview extends Page implements HasTable
                     ->alignEnd()
                     ->getStateUsing(
                         fn (InventoryLevel $record): string => '$' . number_format(
-                            $record->quantity * (float) $record->variant->cost_price,
+                            $record->quantity * (float) ($record->variant->cost_price ?? 0),
                             2,
                             ',',
                             '.'

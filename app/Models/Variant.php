@@ -19,7 +19,6 @@ class Variant extends Model
         'barcode',
         'name',
         'images',
-        'cost_price',
         'is_active',
     ];
 
@@ -27,7 +26,6 @@ class Variant extends Model
     {
         return [
             'images' => 'array',
-            'cost_price' => 'decimal:2',
             'is_active' => 'boolean',
         ];
     }
@@ -61,6 +59,21 @@ class Variant extends Model
     public function stockMovements(): HasMany
     {
         return $this->hasMany(StockMovement::class);
+    }
+
+    public function supplierVariants(): HasMany
+    {
+        return $this->hasMany(SupplierVariant::class);
+    }
+
+    public function defaultSupplierVariant(): ?SupplierVariant
+    {
+        return $this->supplierVariants()->where('is_default', true)->first();
+    }
+
+    public function getCostPriceAttribute(): ?float
+    {
+        return (float) ($this->defaultSupplierVariant()?->cost_price ?? 0);
     }
 
     public function totalStock(): int

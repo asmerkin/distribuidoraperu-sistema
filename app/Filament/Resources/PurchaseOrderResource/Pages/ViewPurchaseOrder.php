@@ -10,6 +10,7 @@ use App\Filament\Resources\SupplierResource;
 use App\Mail\PurchaseOrderMail;
 use App\Models\PurchaseOrderReceipt;
 use App\Models\PurchaseOrderReceiptItem;
+use App\Models\SupplierVariant;
 use App\Services\InventoryService;
 use App\Services\PurchaseOrderPdfService;
 use Filament\Actions\Action;
@@ -326,8 +327,14 @@ class ViewPurchaseOrder extends ViewRecord
                     ]);
                 }
 
-                // Update variant cost price
-                $item->variant->update(['cost_price' => $confirmedPrice]);
+                // Update supplier-variant cost price (triggers price log via model events)
+                $supplierVariant = SupplierVariant::where('supplier_id', $record->supplier_id)
+                    ->where('variant_id', $item->variant->id)
+                    ->first();
+
+                if ($supplierVariant) {
+                    $supplierVariant->update(['cost_price' => $confirmedPrice]);
+                }
 
                 // Create stock movement
                 $inventory->recordMovement(

@@ -21,9 +21,9 @@ class Supplier extends Model
         'notes',
     ];
 
-    public function products(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    public function supplierVariants(): HasMany
     {
-        return $this->belongsToMany(Product::class);
+        return $this->hasMany(SupplierVariant::class);
     }
 
     public function purchaseOrders(): HasMany

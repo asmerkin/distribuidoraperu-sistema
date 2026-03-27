@@ -61,11 +61,6 @@ class ViewProduct extends ViewRecord
                                     ->formatStateUsing(fn (UnitOfMeasure $state): string => $state->label())
                                     ->color('gray'),
 
-                                TextEntry::make('suppliers.name')
-                                    ->label('Proveedores')
-                                    ->placeholder('—')
-                                    ->columnSpanFull(),
-
                                 IconEntry::make('is_active')
                                     ->label('Activo')
                                     ->boolean(),

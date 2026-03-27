@@ -18,8 +18,11 @@ class StatsOverview extends StatsOverviewWidget
     protected function getStats(): array
     {
         $inventoryValue = InventoryLevel::query()
-            ->join('variants', 'inventory_levels.variant_id', '=', 'variants.id')
-            ->select(DB::raw('SUM(inventory_levels.quantity * variants.cost_price) as total'))
+            ->leftJoin('supplier_variants', function ($join) {
+                $join->on('inventory_levels.variant_id', '=', 'supplier_variants.variant_id')
+                    ->where('supplier_variants.is_default', true);
+            })
+            ->select(DB::raw('SUM(inventory_levels.quantity * COALESCE(supplier_variants.cost_price, 0)) as total'))
             ->value('total') ?? 0;
 
         $pendingPOs = PurchaseOrder::query()

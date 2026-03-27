@@ -7,6 +7,7 @@ use App\Filament\Resources\PurchaseOrderResource\Pages;
 use App\Models\Location;
 use App\Models\PurchaseOrder;
 use App\Models\Supplier;
+use App\Models\SupplierVariant;
 use App\Models\Variant;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
@@ -56,7 +57,8 @@ class PurchaseOrderResource extends Resource
                         ->options(Supplier::query()->orderBy('name')->pluck('name', 'id'))
                         ->searchable()
                         ->preload()
-                        ->required(),
+                        ->required()
+                        ->reactive(),
 
                     Select::make('location_id')
                         ->label('Destino de mercadería')
@@ -104,27 +106,37 @@ class PurchaseOrderResource extends Resource
                         ->schema([
                             Select::make('variant_id')
                                 ->label('Producto / Variante')
-                                ->options(
-                                    Variant::query()
-                                        ->where('is_active', true)
-                                        ->with('product')
+                                ->options(function (callable $get) {
+                                    $supplierId = $get('../../supplier_id');
+
+                                    if (! $supplierId) {
+                                        return [];
+                                    }
+
+                                    return SupplierVariant::where('supplier_id', $supplierId)
+                                        ->with('variant.product')
                                         ->get()
-                                        ->mapWithKeys(fn (Variant $v) => [
-                                            $v->id => "[{$v->sku}] {$v->product->name}" . ($v->name !== 'Default' ? " — {$v->name}" : ''),
-                                        ])
-                                )
+                                        ->mapWithKeys(fn (SupplierVariant $sv) => [
+                                            $sv->variant_id => "[{$sv->variant->sku}] {$sv->variant->product->name}"
+                                                . ($sv->variant->name !== 'Default' ? " — {$sv->variant->name}" : '')
+                                                . ($sv->supplier_code ? " ({$sv->supplier_code})" : ''),
+                                        ]);
+                                })
                                 ->searchable()
                                 ->preload()
                                 ->required()
                                 ->distinct()
                                 ->columnSpan(3)
                                 ->reactive()
-                                ->afterStateUpdated(function ($state, callable $set) {
+                                ->afterStateUpdated(function ($state, callable $get, callable $set) {
                                     if ($state) {
-                                        $variant = Variant::find($state);
-                                        if ($variant) {
-                                            $set('unit_cost', $variant->cost_price);
-                                        }
+                                        $supplierId = $get('../../supplier_id');
+                                        $sv = SupplierVariant::where('supplier_id', $supplierId)
+                                            ->where('variant_id', $state)
+                                            ->first();
+
+                                        $price = $sv?->cost_price ?? Variant::find($state)?->cost_price ?? 0;
+                                        $set('unit_cost', $price);
                                     }
                                 }),
 
