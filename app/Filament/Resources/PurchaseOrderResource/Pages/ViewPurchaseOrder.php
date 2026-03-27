@@ -7,9 +7,11 @@ use App\Enums\StockMovementReason;
 use App\Enums\StockMovementType;
 use App\Filament\Resources\PurchaseOrderResource;
 use App\Filament\Resources\SupplierResource;
+use App\Mail\PurchaseOrderMail;
 use App\Models\PurchaseOrderReceipt;
 use App\Models\PurchaseOrderReceiptItem;
 use App\Services\InventoryService;
+use App\Services\PurchaseOrderPdfService;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\TextInput;
@@ -21,6 +23,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class ViewPurchaseOrder extends ViewRecord
 {
@@ -48,9 +51,28 @@ class ViewPurchaseOrder extends ViewRecord
                 ->visible(fn () => $record->status === PurchaseOrderStatus::Draft)
                 ->requiresConfirmation()
                 ->modalHeading('Enviar orden de compra')
-                ->modalDescription("Se enviará la orden {$record->po_number} al proveedor {$record->supplier->name}.")
+                ->modalDescription(function () use ($record) {
+                    if (! $record->supplier->email) {
+                        return "El proveedor {$record->supplier->name} no tiene email cargado. Editá el proveedor para agregar un email antes de enviar.";
+                    }
+
+                    return "Se enviará la orden {$record->po_number} por email a {$record->supplier->email}.";
+                })
                 ->modalSubmitActionLabel('Enviar')
                 ->action(function () use ($record) {
+                    if (! $record->supplier->email) {
+                        Notification::make()
+                            ->title('Error')
+                            ->body('El proveedor no tiene email cargado.')
+                            ->danger()
+                            ->send();
+
+                        return;
+                    }
+
+                    Mail::to($record->supplier->email)
+                        ->send(new PurchaseOrderMail($record));
+
                     $record->update([
                         'status' => PurchaseOrderStatus::Sent,
                         'sent_at' => now(),
@@ -58,11 +80,24 @@ class ViewPurchaseOrder extends ViewRecord
 
                     Notification::make()
                         ->title('Orden enviada')
-                        ->body("La orden {$record->po_number} fue marcada como enviada.")
+                        ->body("La orden {$record->po_number} fue enviada por email a {$record->supplier->email}.")
                         ->success()
                         ->send();
 
                     $this->refreshFormData(['status', 'sent_at']);
+                }),
+
+            Action::make('download_pdf')
+                ->label('Descargar PDF')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('gray')
+                ->action(function () use ($record) {
+                    $pdf = app(PurchaseOrderPdfService::class)->generate($record);
+
+                    return response()->streamDownload(
+                        fn () => print($pdf->output()),
+                        "OC-{$record->po_number}.pdf",
+                    );
                 }),
 
             Action::make('receive')
