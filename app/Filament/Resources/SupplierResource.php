@@ -17,8 +17,13 @@ use Filament\Schemas\Schema;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\RestoreAction;
+use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class SupplierResource extends Resource
 {
@@ -150,13 +155,26 @@ class SupplierResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('name')
-            ->recordUrl(fn ($record) => static::getUrl('view', ['record' => $record]))
+            ->recordUrl(fn ($record) => $record->trashed() ? null : static::getUrl('view', ['record' => $record]))
             ->actions([
-                EditAction::make(),
+                EditAction::make()
+                    ->visible(fn ($record) => ! $record->trashed()),
+                RestoreAction::make(),
+                \Filament\Actions\DeleteAction::make()
+                    ->label('Archivar')
+                    ->modalHeading('Archivar proveedor')
+                    ->modalDescription('El proveedor quedará archivado y no aparecerá en los filtros por defecto. Podés restaurarlo en cualquier momento.')
+                    ->visible(fn ($record) => ! $record->trashed()),
+            ])
+            ->filters([
+                TrashedFilter::make()
+                    ->label('Archivados'),
             ])
             ->bulkActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->label('Archivar seleccionados'),
+                    RestoreBulkAction::make(),
                 ]),
             ]);
     }
@@ -176,6 +194,12 @@ class SupplierResource extends Resource
             PurchaseOrdersRelationManager::class,
             PaymentsRelationManager::class,
         ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->withoutGlobalScopes([SoftDeletingScope::class]);
     }
 
     public static function getPages(): array
