@@ -53,7 +53,6 @@ class StockMovementsRelationManager extends RelationManager
                         StockMovementType::In => 'success',
                         StockMovementType::Out => 'danger',
                         StockMovementType::Adjustment => 'warning',
-                        StockMovementType::Transfer => 'info',
                     }),
 
                 TextColumn::make('reason')

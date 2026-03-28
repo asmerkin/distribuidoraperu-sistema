@@ -54,7 +54,6 @@ class InventoryService
             StockMovementType::In => $quantity,
             StockMovementType::Out => -$quantity,
             StockMovementType::Adjustment => $quantity, // quantity can be positive or negative for adjustments
-            StockMovementType::Transfer => 0, // handled by transfer method with two movements
         };
     }
 
@@ -68,57 +67,29 @@ class InventoryService
         ?Model $reference = null,
     ): array {
         return DB::transaction(function () use ($variant, $from, $to, $quantity, $notes, $userId, $reference) {
-            $outMovement = $this->recordMovementRaw(
-                $variant, $from, StockMovementType::Out, StockMovementReason::TransferOut,
-                $quantity, $reference, $notes, $userId,
+            $outMovement = $this->recordMovement(
+                variant: $variant,
+                location: $from,
+                type: StockMovementType::Out,
+                reason: StockMovementReason::TransferOut,
+                quantity: $quantity,
+                reference: $reference,
+                notes: $notes,
+                userId: $userId,
             );
 
-            $inMovement = $this->recordMovementRaw(
-                $variant, $to, StockMovementType::In, StockMovementReason::TransferIn,
-                $quantity, $reference, $notes, $userId,
+            $inMovement = $this->recordMovement(
+                variant: $variant,
+                location: $to,
+                type: StockMovementType::In,
+                reason: StockMovementReason::TransferIn,
+                quantity: $quantity,
+                reference: $reference,
+                notes: $notes,
+                userId: $userId,
             );
 
             return [$outMovement, $inMovement];
         });
-    }
-
-    private function recordMovementRaw(
-        Variant $variant,
-        Location $location,
-        StockMovementType $type,
-        StockMovementReason $reason,
-        int $quantity,
-        ?Model $reference,
-        ?string $notes,
-        ?int $userId,
-    ): StockMovement {
-        $movement = StockMovement::create([
-            'variant_id' => $variant->id,
-            'location_id' => $location->id,
-            'type' => $type,
-            'reason' => $reason,
-            'quantity' => $quantity,
-            'reference_type' => $reference?->getMorphClass(),
-            'reference_id' => $reference?->getKey(),
-            'notes' => $notes,
-            'user_id' => $userId,
-        ]);
-
-        $inventoryLevel = InventoryLevel::firstOrCreate(
-            ['variant_id' => $variant->id, 'location_id' => $location->id],
-            ['quantity' => 0, 'min_stock' => 0],
-        );
-
-        $delta = match ($type) {
-            StockMovementType::In => $quantity,
-            StockMovementType::Out => -$quantity,
-            default => 0,
-        };
-
-        if ($delta !== 0) {
-            $inventoryLevel->increment('quantity', $delta);
-        }
-
-        return $movement;
     }
 }

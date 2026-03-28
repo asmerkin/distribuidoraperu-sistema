@@ -72,7 +72,6 @@ class StockMovementHistory extends Page implements HasTable
                         StockMovementType::In => 'success',
                         StockMovementType::Out => 'danger',
                         StockMovementType::Adjustment => 'warning',
-                        StockMovementType::Transfer => 'info',
                     }),
 
                 TextColumn::make('reason')

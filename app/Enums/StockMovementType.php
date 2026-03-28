@@ -7,7 +7,6 @@ enum StockMovementType: string
     case In = 'in';
     case Out = 'out';
     case Adjustment = 'adjustment';
-    case Transfer = 'transfer';
 
     public function label(): string
     {
