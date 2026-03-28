@@ -33,7 +33,7 @@ class PendingPurchaseOrdersWidget extends TableWidget
                 TextColumn::make('po_number')
                     ->label('N° Orden')
                     ->fontFamily(FontFamily::Mono)
-                    ->url(fn (PurchaseOrder $record): string => PurchaseOrderResource::getUrl('edit', ['record' => $record])),
+                    ->url(fn (PurchaseOrder $record): string => PurchaseOrderResource::getUrl('view', ['record' => $record])),
 
                 TextColumn::make('supplier.name')
                     ->label('Proveedor')
