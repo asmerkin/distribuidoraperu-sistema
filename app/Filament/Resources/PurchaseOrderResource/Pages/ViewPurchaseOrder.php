@@ -103,6 +103,36 @@ class ViewPurchaseOrder extends ViewRecord
                 ->form(fn () => $this->buildConfirmFormFields())
                 ->action(fn (array $data) => $this->processConfirmation($data)),
 
+            Action::make('reject')
+                ->label('Rechazar')
+                ->icon('heroicon-o-x-circle')
+                ->color('danger')
+                ->visible(fn () => $record->status === PurchaseOrderStatus::Sent)
+                ->modalHeading('Rechazar orden de compra')
+                ->modalDescription("Marcar la orden {$record->po_number} como rechazada por el proveedor.")
+                ->modalSubmitActionLabel('Marcar como rechazada')
+                ->form([
+                    Textarea::make('rejection_reason')
+                        ->label('Motivo del rechazo')
+                        ->rows(3)
+                        ->required(),
+                ])
+                ->action(function (array $data) use ($record) {
+                    $record->update([
+                        'status' => PurchaseOrderStatus::Rejected,
+                        'rejected_at' => now(),
+                        'rejection_reason' => $data['rejection_reason'],
+                    ]);
+
+                    Notification::make()
+                        ->title('Orden rechazada')
+                        ->body("La orden {$record->po_number} fue marcada como rechazada.")
+                        ->warning()
+                        ->send();
+
+                    $this->refreshFormData(['status', 'rejected_at', 'rejection_reason']);
+                }),
+
             Action::make('receive')
                 ->label('Recibir mercadería')
                 ->icon('heroicon-o-truck')
@@ -154,36 +184,6 @@ class ViewPurchaseOrder extends ViewRecord
                             ->body("La orden {$record->po_number} fue reenviada a {$record->supplier->email}.")
                             ->success()
                             ->send();
-                    }),
-
-                Action::make('reject')
-                    ->label('Rechazar (proveedor rechazó)')
-                    ->icon('heroicon-o-x-circle')
-                    ->color('danger')
-                    ->visible(fn () => $record->status === PurchaseOrderStatus::Sent)
-                    ->modalHeading('Rechazar orden de compra')
-                    ->modalDescription("Marcar la orden {$record->po_number} como rechazada por el proveedor.")
-                    ->modalSubmitActionLabel('Marcar como rechazada')
-                    ->form([
-                        Textarea::make('rejection_reason')
-                            ->label('Motivo del rechazo')
-                            ->rows(3)
-                            ->required(),
-                    ])
-                    ->action(function (array $data) use ($record) {
-                        $record->update([
-                            'status' => PurchaseOrderStatus::Rejected,
-                            'rejected_at' => now(),
-                            'rejection_reason' => $data['rejection_reason'],
-                        ]);
-
-                        Notification::make()
-                            ->title('Orden rechazada')
-                            ->body("La orden {$record->po_number} fue marcada como rechazada.")
-                            ->warning()
-                            ->send();
-
-                        $this->refreshFormData(['status', 'rejected_at', 'rejection_reason']);
                     }),
 
                 Action::make('reopen')
