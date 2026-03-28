@@ -34,7 +34,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandName('Distribuidora Perú')
             ->brandLogo(fn () => view('filament.brand-logo'))
             ->brandLogoHeight('2.5rem')
-            ->favicon('/images/logo.png')
+            ->favicon('/images/logo.svg')
             ->font('DM Sans')
             ->colors([
                 'primary' => [
