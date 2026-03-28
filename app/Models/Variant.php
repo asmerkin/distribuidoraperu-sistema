@@ -73,7 +73,13 @@ class Variant extends Model
 
     public function getCostPriceAttribute(): ?float
     {
-        return (float) ($this->defaultSupplierVariant()?->cost_price ?? 0);
+        $sv = $this->defaultSupplierVariant();
+
+        if (! $sv) {
+            return 0;
+        }
+
+        return (float) $sv->cost_price / max($sv->purchase_unit_qty, 1);
     }
 
     public function totalStock(): int

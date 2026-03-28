@@ -22,7 +22,7 @@ class StatsOverview extends StatsOverviewWidget
                 $join->on('inventory_levels.variant_id', '=', 'supplier_variants.variant_id')
                     ->where('supplier_variants.is_default', true);
             })
-            ->select(DB::raw('SUM(inventory_levels.quantity * COALESCE(supplier_variants.cost_price, 0)) as total'))
+            ->select(DB::raw('SUM(inventory_levels.quantity * COALESCE(supplier_variants.cost_price, 0) / GREATEST(COALESCE(supplier_variants.purchase_unit_qty, 1), 1)) as total'))
             ->value('total') ?? 0;
 
         $pendingPOs = PurchaseOrder::query()
