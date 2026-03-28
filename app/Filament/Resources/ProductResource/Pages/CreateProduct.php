@@ -50,19 +50,21 @@ class CreateProduct extends CreateRecord
         ]);
     }
 
-    protected function afterCreate(): void
+    protected function handleRecordCreation(array $data): \Illuminate\Database\Eloquent\Model
     {
-        $data = $this->form->getState();
-        $service = app(ProductService::class);
+        $formState = $this->form->getState();
+        $variants = $formState['initial_variants'] ?? [];
 
-        foreach ($data['initial_variants'] ?? [] as $variant) {
-            $service->createVariant(
-                productId: $this->record->id,
-                sku: $variant['sku'],
-                name: $variant['name'] ?: 'Default',
-                barcode: $variant['barcode'] ?? null,
-            );
-        }
+        $result = app(ProductService::class)->createWithVariants(
+            name: $data['name'],
+            unitOfMeasure: $data['unit_of_measure'] ?? 'unit',
+            categoryId: $data['category_id'] ?? null,
+            description: $data['description'] ?? null,
+            isActive: $data['is_active'] ?? true,
+            variants: $variants,
+        );
+
+        return $result['product'];
     }
 
     protected function getRedirectUrl(): string
