@@ -45,14 +45,16 @@ La estructura sigue el patrón de Shopify: un Product tiene una o más Variants.
 
 **Modelos:** `Product`, `ProductOption`, `ProductOptionValue`, `Variant`, `Location`, `InventoryLevel`, `Category`
 
-**Tabla pivot: `product_supplier`** — Relación many-to-many entre productos y proveedores (solo asociación, sin datos extra).
+**Tabla pivot: `variant_option_values`** — qué option values componen cada variant.
+
+**Tabla pivot: `supplier_variant`** — Relación many-to-many entre variants y proveedores (reemplazó `product_supplier`). Permite asociar proveedores a nivel de variante.
 
 **Relaciones clave:**
 ```
 Product hasMany Variants
 Product hasMany ProductOptions → each hasMany ProductOptionValues
-Product belongsToMany Suppliers (via product_supplier)
 Variant belongsToMany ProductOptionValues (via variant_option_values)
+Variant belongsToMany Suppliers (via supplier_variant)
 Variant hasMany InventoryLevels
 Location hasMany InventoryLevels
 InventoryLevel belongsTo Variant + Location
@@ -66,7 +68,8 @@ InventoryLevel belongsTo Variant + Location
 **Modelo: `StockMovement`** — Todo movimiento de stock es inmutable y pasa por `InventoryService`.
 
 **Enums:**
-- `StockMovementType`: `In`, `Out`, `Adjustment`, `Transfer`
+- `StockMovementType`: `In`, `Out`, `Adjustment`
+  - No existe `Transfer` — las transferencias usan 2 movimientos: `Out` + `In`
 - `StockMovementReason`: `Purchase`, `StockCount`, `Shrinkage`, `Return`, `TransferIn`, `TransferOut`
 
 **Reglas de negocio:**
@@ -74,7 +77,8 @@ InventoryLevel belongsTo Variant + Location
 - `InventoryService::recordMovement()` centraliza toda la lógica
 - Si no existe el `InventoryLevel` para esa variant+location, se crea automáticamente
 - Historial inmutable — se crean ajustes compensatorios para corregir
-- Transferencias generan 2 movimientos: salida en origin + entrada en destino
+- Transferencias: `InventoryService::transfer()` genera 2 movimientos via `recordMovement()`
+- InventoryLevel nunca se elimina — si una ubicación se desactiva, se zeroa el stock con un Ajuste y se deja el registro con qty=0
 
 **Funcionalidades:** Conteo físico (PWA Scanner — ver sección PWA), Transferencias (StockTransferPage), Historial de movimientos (StockMovementHistory), Ajuste rápido por variante (InventoryRelationManager en ProductResource)
 
@@ -82,23 +86,29 @@ InventoryLevel belongsTo Variant + Location
 
 **Modelos:** `Supplier`, `PurchaseOrder`, `PurchaseOrderItem`, `PurchaseOrderReceipt`, `PurchaseOrderReceiptItem`
 
-**Enum `PurchaseOrderStatus`:** `Draft`, `Sent`, `PartiallyReceived`, `Received`, `Cancelled`
+**Supplier tiene SoftDeletes** — archivar en lugar de eliminar. `supplier_invoices.supplier_id` usa `restrictOnDelete`.
+
+**Enum `PurchaseOrderStatus`:** `Draft`, `Sent`, `Confirmed`, `Rejected`, `PartiallyReceived`, `Received`, `Cancelled`
 
 **Flujo de la Purchase Order:**
 ```
 1. CREAR (Draft) → proveedor, location destino, variants, cantidades, precios
-2. ENVIAR (Sent) → marca sent_at (PDF/email pendiente de implementar)
-3. RECIBIR → modal con cantidad + precio por línea
+2. ENVIAR (Sent) → marca sent_at, opcionalmente envía email al proveedor
+3. CONFIRMAR (Confirmed) → ajusta cantidades/precios según confirmación del proveedor
+4. RECHAZAR (Rejected) → registra motivo; puede reabrirse como Borrador
+5. RECIBIR → modal con cantidad + precio por línea desde ViewPurchaseOrder
    → Crea PurchaseOrderReceipt con items (historial de recepciones)
    → Si precio difiere: actualiza unit_cost de la línea, recalcula subtotal
-   → Actualiza cost_price de la variante con precio confirmado
-   → Genera StockMovements de entrada
+   → Actualiza cost_price del SupplierVariant con precio confirmado
+   → Genera StockMovements de entrada (tipo In, razón Purchase)
    → Status → Received o PartiallyReceived
-4. ANULAR RECEPCIÓN → revierte stock (crea salidas), resta cantidades, marca receipt como voided
-5. CANCELAR → solo en Draft o Sent
+6. CANCELAR → disponible en Sent, Confirmed, Rejected
+   → Modal con advertencia dinámica según estado:
+     - Sent/Confirmed: avisa que ya fue enviada al proveedor
+     - PartiallyReceived: avisa que hay stock ya ingresado que NO se revierte
 ```
 
-**View de PO:** Infolist read-only con detalle + tab de Recepciones (RelationManager con acciones Ver/Anular)
+**View de PO:** `ViewPurchaseOrder` page con infolist + todas las acciones en header.
 
 ### 4. Facturas de Proveedores
 
@@ -106,17 +116,26 @@ InventoryLevel belongsTo Variant + Location
 
 **Enum `SupplierInvoiceStatus`:** `Unpaid`, `PartiallyPaid`, `Paid`
 
+- `SupplierInvoice::recalculateFromPayments()` — recalcula `amount_paid` y `status` sumando todos los pagos. Usar en create/edit/delete de pagos (nunca `recordPayment()`).
 - Facturas vinculables a una PO (opcional)
 - Pagos parciales/totales con registro de método y comprobante (FileUpload a S3)
 - Filtros: por estado, por vencidas, por rango de fechas, por proveedor
 - Vista del proveedor: tabs con Productos, Facturas, Órdenes de Compra, Pagos + widget de stats
 
-### 5. Dashboard
+### 5. Scanner PWA / API
+
+**Modelos:** `ScannerDevice` — dispositivos autorizados para el scanner móvil.
+
+- API de autenticación via OTP temporal → token permanente por device
+- Endpoints para lookup de variants por barcode/SKU
+- Endpoints para registrar ajustes de stock desde el scanner
+
+### 7. Dashboard
 
 - Widget: Órdenes Pendientes de Recepción (full width)
 - Widget: Stock Bajo (full width)
 
-### 6. Usuarios
+### 8. Usuarios
 
 - **Perfil propio:** Filament built-in (`->profile()`) — nombre, email, contraseña
 - **CRUD de usuarios:** Resource en Configuración — crear, editar, eliminar. No se puede eliminar el usuario logueado. Password hasheado, opcional en edición.
