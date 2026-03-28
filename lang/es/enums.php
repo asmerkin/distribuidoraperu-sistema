@@ -4,6 +4,8 @@ return [
     'purchase_order_status' => [
         'draft' => 'Borrador',
         'sent' => 'Enviada',
+        'confirmed' => 'Confirmada',
+        'rejected' => 'Rechazada',
         'partially_received' => 'Recibida parcial',
         'received' => 'Recibida',
         'cancelled' => 'Cancelada',

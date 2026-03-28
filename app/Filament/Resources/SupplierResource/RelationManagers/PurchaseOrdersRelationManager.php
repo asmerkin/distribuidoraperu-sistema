@@ -30,6 +30,8 @@ class PurchaseOrdersRelationManager extends RelationManager
                     ->color(fn ($state) => match ($state) {
                         \App\Enums\PurchaseOrderStatus::Draft => 'gray',
                         \App\Enums\PurchaseOrderStatus::Sent => 'info',
+                        \App\Enums\PurchaseOrderStatus::Confirmed => 'success',
+                        \App\Enums\PurchaseOrderStatus::Rejected => 'danger',
                         \App\Enums\PurchaseOrderStatus::PartiallyReceived => 'warning',
                         \App\Enums\PurchaseOrderStatus::Received => 'success',
                         \App\Enums\PurchaseOrderStatus::Cancelled => 'danger',
