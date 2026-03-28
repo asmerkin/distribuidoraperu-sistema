@@ -159,7 +159,7 @@ class InventoryRelationManager extends RelationManager
                                         );
                                     }
                                     $adjustments++;
-                                    $level->delete();
+                                    $level->update(['min_stock' => 0]);
                                 }
 
                                 continue;
