@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PurchaseOrderStatus;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -85,5 +86,16 @@ class Variant extends Model
     public function totalStock(): int
     {
         return $this->inventoryLevels()->sum('quantity');
+    }
+
+    public function pendingFromPurchaseOrders(): int
+    {
+        return (int) PurchaseOrderItem::where('variant_id', $this->id)
+            ->whereHas('purchaseOrder', fn ($q) => $q->whereIn('status', [
+                PurchaseOrderStatus::Confirmed,
+                PurchaseOrderStatus::PartiallyReceived,
+            ]))
+            ->selectRaw('COALESCE(SUM(base_quantity_ordered - base_quantity_received), 0) as pending')
+            ->value('pending');
     }
 }

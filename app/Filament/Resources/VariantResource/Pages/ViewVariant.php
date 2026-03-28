@@ -83,6 +83,16 @@ class ViewVariant extends ViewRecord
                                     ->getStateUsing(fn () => $record->totalStock())
                                     ->weight(FontWeight::Bold),
 
+                                TextEntry::make('pending_po')
+                                    ->label('Pendiente de PO')
+                                    ->getStateUsing(function () use ($record) {
+                                        $pending = $record->pendingFromPurchaseOrders();
+
+                                        return $pending > 0 ? "+{$pending} uds." : '—';
+                                    })
+                                    ->color(fn () => $record->pendingFromPurchaseOrders() > 0 ? 'info' : 'gray')
+                                    ->icon(fn () => $record->pendingFromPurchaseOrders() > 0 ? 'heroicon-o-truck' : null),
+
                                 IconEntry::make('is_active')
                                     ->label('Activo')
                                     ->boolean(),

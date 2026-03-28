@@ -103,6 +103,13 @@ class VariantsRelationManager extends RelationManager
                     ->getStateUsing(fn (Variant $record): int => $record->inventoryLevels()->sum('quantity'))
                     ->alignCenter(),
 
+                TextColumn::make('pending_po')
+                    ->label('Pendiente PO')
+                    ->getStateUsing(fn (Variant $record): int => $record->pendingFromPurchaseOrders())
+                    ->formatStateUsing(fn (int $state): string => $state > 0 ? "+{$state}" : '—')
+                    ->color(fn (Variant $record): string => $record->pendingFromPurchaseOrders() > 0 ? 'info' : 'gray')
+                    ->alignCenter(),
+
                 IconColumn::make('is_active')
                     ->label('Activo')
                     ->boolean()

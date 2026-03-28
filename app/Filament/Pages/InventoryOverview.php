@@ -81,6 +81,13 @@ class InventoryOverview extends Page implements HasTable
                     ->weight('bold')
                     ->color(fn (InventoryLevel $record): string => $record->isLowStock() ? 'danger' : 'success'),
 
+                TextColumn::make('pending_po')
+                    ->label('Pendiente PO')
+                    ->getStateUsing(fn (InventoryLevel $record): int => $record->variant->pendingFromPurchaseOrders())
+                    ->formatStateUsing(fn (int $state): string => $state > 0 ? "+{$state}" : '—')
+                    ->color(fn (InventoryLevel $record): string => $record->variant->pendingFromPurchaseOrders() > 0 ? 'info' : 'gray')
+                    ->alignCenter(),
+
                 TextColumn::make('min_stock')
                     ->label('Mínimo')
                     ->sortable()
