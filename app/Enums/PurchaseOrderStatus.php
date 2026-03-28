@@ -6,6 +6,8 @@ enum PurchaseOrderStatus: string
 {
     case Draft = 'draft';
     case Sent = 'sent';
+    case Confirmed = 'confirmed';
+    case Rejected = 'rejected';
     case PartiallyReceived = 'partially_received';
     case Received = 'received';
     case Cancelled = 'cancelled';

@@ -42,6 +42,9 @@ class PurchaseOrder extends Model
         'notes_for_supplier',
         'user_id',
         'sent_at',
+        'confirmed_at',
+        'rejected_at',
+        'rejection_reason',
     ];
 
     protected function casts(): array
@@ -52,6 +55,8 @@ class PurchaseOrder extends Model
             'expected_date' => 'date',
             'total' => 'decimal:2',
             'sent_at' => 'datetime',
+            'confirmed_at' => 'datetime',
+            'rejected_at' => 'datetime',
         ];
     }
 

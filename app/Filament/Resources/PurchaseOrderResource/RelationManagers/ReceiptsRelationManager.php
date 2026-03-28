@@ -130,7 +130,7 @@ class ReceiptsRelationManager extends RelationManager
                             $totalOrdered = $po->items->sum('quantity_ordered');
 
                             $newStatus = match (true) {
-                                $totalReceived <= 0 => PurchaseOrderStatus::Sent,
+                                $totalReceived <= 0 => PurchaseOrderStatus::Confirmed,
                                 $totalReceived >= $totalOrdered => PurchaseOrderStatus::Received,
                                 default => PurchaseOrderStatus::PartiallyReceived,
                             };
