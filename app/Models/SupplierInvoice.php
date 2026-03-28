@@ -91,15 +91,17 @@ class SupplierInvoice extends Model
         };
     }
 
-    public function recordPayment(float $amount): void
+    public function recalculateFromPayments(): void
     {
-        $this->increment('amount_paid', $amount);
-        $this->refresh();
+        $paid = (float) $this->payments()->sum('amount');
 
         $this->update([
-            'status' => (float) $this->amount_paid >= (float) $this->total
-                ? SupplierInvoiceStatus::Paid
-                : SupplierInvoiceStatus::PartiallyPaid,
+            'amount_paid' => $paid,
+            'status' => $paid <= 0
+                ? SupplierInvoiceStatus::Unpaid
+                : ($paid >= (float) $this->total
+                    ? SupplierInvoiceStatus::Paid
+                    : SupplierInvoiceStatus::PartiallyPaid),
         ]);
     }
 }

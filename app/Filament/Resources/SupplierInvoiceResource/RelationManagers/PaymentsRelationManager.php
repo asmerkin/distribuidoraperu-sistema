@@ -4,8 +4,10 @@ namespace App\Filament\Resources\SupplierInvoiceResource\RelationManagers;
 
 use App\Models\SupplierPayment;
 use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Illuminate\Support\Facades\DB;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
@@ -25,42 +27,7 @@ class PaymentsRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        return $schema->components([
-            DatePicker::make('date')
-                ->label('Fecha')
-                ->required()
-                ->displayFormat('d/m/Y'),
-
-            TextInput::make('amount')
-                ->label('Monto')
-                ->numeric()
-                ->prefix('$')
-                ->required()
-                ->minValue(0.01),
-
-            Select::make('method')
-                ->label('Medio de pago')
-                ->options([
-                    'efectivo' => 'Efectivo',
-                    'transferencia' => 'Transferencia',
-                    'cheque' => 'Cheque',
-                ]),
-
-            TextInput::make('reference')
-                ->label('Referencia')
-                ->maxLength(255),
-
-            FileUpload::make('attachment')
-                ->label('Comprobante')
-                ->disk('public')
-                ->directory('supplier-payments')
-                ->acceptedFileTypes(['application/pdf', 'image/*'])
-                ->maxSize(10240),
-
-            Textarea::make('notes')
-                ->label('Notas')
-                ->rows(2),
-        ]);
+        return $schema->components([]);
     }
 
     public function table(Table $table): Table
@@ -99,13 +66,7 @@ class PaymentsRelationManager extends RelationManager
                     ->toggleable(),
             ])
             ->actions([
-                Action::make('ver')
-                    ->label('Ver')
-                    ->icon('heroicon-o-eye')
-                    ->color('gray')
-                    ->modalHeading(fn ($record) => "Pago del " . $record->date->format('d/m/Y'))
-                    ->modalSubmitAction(false)
-                    ->modalCancelActionLabel('Cerrar')
+                ViewAction::make()
                     ->infolist([
                         \Filament\Infolists\Components\TextEntry::make('date')->label('Fecha')->date('d/m/Y'),
                         \Filament\Infolists\Components\TextEntry::make('amount')->label('Monto')->money('ARS'),
@@ -116,25 +77,11 @@ class PaymentsRelationManager extends RelationManager
                         \Filament\Infolists\Components\TextEntry::make('attachment')
                             ->label('Comprobante')
                             ->visible(fn ($record) => filled($record->attachment))
-                            ->state('Descargar comprobante')
-                            ->url(fn ($record) => \Illuminate\Support\Facades\Storage::url($record->attachment))
+                            ->url(fn ($record) => $record->attachment ? \Illuminate\Support\Facades\Storage::url($record->attachment) : null)
                             ->openUrlInNewTab()
-                            ->color('primary'),
+                            ->state('Ver comprobante'),
                     ]),
-
-                Action::make('editar')
-                    ->label('Editar')
-                    ->icon('heroicon-o-pencil')
-                    ->modalHeading(fn ($record) => "Editar pago del " . $record->date->format('d/m/Y'))
-                    ->modalSubmitActionLabel('Guardar')
-                    ->fillForm(fn ($record) => [
-                        'date' => $record->date,
-                        'amount' => $record->amount,
-                        'method' => $record->method,
-                        'reference' => $record->reference,
-                        'attachment' => $record->attachment,
-                        'notes' => $record->notes,
-                    ])
+                EditAction::make()
                     ->form([
                         DatePicker::make('date')
                             ->label('Fecha')
@@ -171,60 +118,21 @@ class PaymentsRelationManager extends RelationManager
                             ->label('Notas')
                             ->rows(2),
                     ])
-                    ->action(function (array $data, $record) {
-                        $record->update($data);
+                    ->using(function (SupplierPayment $record, array $data) use ($invoice): SupplierPayment {
+                        return DB::transaction(function () use ($record, $data, $invoice): SupplierPayment {
+                            $record->update($data);
+                            $invoice->recalculateFromPayments();
 
-                        // Recalculate invoice from source of truth
-                        $invoice = $record->invoice;
-                        $newAmountPaid = (float) $invoice->payments()->sum('amount');
-                        $invoice->update([
-                            'amount_paid' => $newAmountPaid,
-                            'status' => $newAmountPaid >= (float) $invoice->total
-                                ? \App\Enums\SupplierInvoiceStatus::Paid
-                                : ($newAmountPaid > 0
-                                    ? \App\Enums\SupplierInvoiceStatus::PartiallyPaid
-                                    : \App\Enums\SupplierInvoiceStatus::Unpaid),
-                        ]);
-
-                        Notification::make()
-                            ->title('Pago actualizado')
-                            ->success()
-                            ->send();
+                            return $record;
+                        });
                     }),
 
-                Action::make('eliminar')
-                    ->label('Eliminar')
-                    ->icon('heroicon-o-trash')
-                    ->color('danger')
-                    ->requiresConfirmation()
-                    ->modalHeading('Eliminar pago')
-                    ->modalDescription('El monto se restará del total pagado de la factura. ¿Continuar?')
-                    ->action(function ($record) {
-                        $invoice = $record->invoice;
-                        $amount = (float) $record->amount;
-
-                        if (filled($record->attachment)) {
-                            \Illuminate\Support\Facades\Storage::disk('public')->delete($record->attachment);
-                        }
-
-                        $record->delete();
-
-                        // Recalculate invoice amount_paid
-                        $newAmountPaid = max(0, (float) $invoice->amount_paid - $amount);
-                        $invoice->update([
-                            'amount_paid' => $newAmountPaid,
-                            'status' => $newAmountPaid >= (float) $invoice->total
-                                ? \App\Enums\SupplierInvoiceStatus::Paid
-                                : ($newAmountPaid > 0
-                                    ? \App\Enums\SupplierInvoiceStatus::PartiallyPaid
-                                    : \App\Enums\SupplierInvoiceStatus::Unpaid),
-                        ]);
-
-                        Notification::make()
-                            ->title('Pago eliminado')
-                            ->body('El estado de la factura fue actualizado.')
-                            ->success()
-                            ->send();
+                DeleteAction::make()
+                    ->using(function (SupplierPayment $record) use ($invoice): void {
+                        DB::transaction(function () use ($record, $invoice): void {
+                            $record->delete();
+                            $invoice->recalculateFromPayments();
+                        });
                     }),
             ])
             ->headerActions([
@@ -277,18 +185,20 @@ class PaymentsRelationManager extends RelationManager
                             ->rows(2),
                     ])
                     ->action(function (array $data) use ($invoice) {
-                        SupplierPayment::create([
-                            'supplier_invoice_id' => $invoice->id,
-                            'amount' => $data['amount'],
-                            'date' => $data['date'],
-                            'method' => $data['method'],
-                            'reference' => $data['reference'] ?? null,
-                            'attachment' => $data['attachment'] ?? null,
-                            'notes' => $data['notes'] ?? null,
-                            'user_id' => auth()->id(),
-                        ]);
+                        DB::transaction(function () use ($data, $invoice): void {
+                            SupplierPayment::create([
+                                'supplier_invoice_id' => $invoice->id,
+                                'amount' => $data['amount'],
+                                'date' => $data['date'],
+                                'method' => $data['method'],
+                                'reference' => $data['reference'] ?? null,
+                                'attachment' => $data['attachment'] ?? null,
+                                'notes' => $data['notes'] ?? null,
+                                'user_id' => auth()->id(),
+                            ]);
 
-                        $invoice->recordPayment((float) $data['amount']);
+                            $invoice->recalculateFromPayments();
+                        });
 
                         Notification::make()
                             ->title('Pago registrado')
