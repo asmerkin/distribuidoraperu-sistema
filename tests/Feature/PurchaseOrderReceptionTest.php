@@ -34,27 +34,34 @@ beforeEach(function () {
     ]);
 });
 
-it('receives full PO and creates stock movements', function () {
-    $po = PurchaseOrder::create([
-        'supplier_id' => $this->supplier->id,
-        'location_id' => $this->location->id,
+function createPO(array $overrides = []): PurchaseOrder
+{
+    return PurchaseOrder::create(array_merge([
+        'supplier_id' => test()->supplier->id,
+        'location_id' => test()->location->id,
         'status' => PurchaseOrderStatus::Sent,
         'order_date' => today(),
         'total' => 1000,
-    ]);
+    ], $overrides));
+}
 
-    $item = PurchaseOrderItem::create([
+function createPOItem(PurchaseOrder $po, array $overrides = []): PurchaseOrderItem
+{
+    return PurchaseOrderItem::create(array_merge([
         'purchase_order_id' => $po->id,
-        'variant_id' => $this->variant->id,
+        'variant_id' => test()->variant->id,
         'quantity_ordered' => 10,
         'quantity_received' => 0,
         'unit_cost' => 100,
         'subtotal' => 1000,
-    ]);
+    ], $overrides));
+}
 
+it('receives full PO and creates stock movements', function () {
+    $po = createPO();
+    $item = createPOItem($po);
     $inventory = app(InventoryService::class);
 
-    // Simulate reception
     $inventory->recordMovement(
         variant: $this->variant,
         location: $this->location,
@@ -83,23 +90,8 @@ it('receives full PO and creates stock movements', function () {
 });
 
 it('handles partial reception', function () {
-    $po = PurchaseOrder::create([
-        'supplier_id' => $this->supplier->id,
-        'location_id' => $this->location->id,
-        'status' => PurchaseOrderStatus::Sent,
-        'order_date' => today(),
-        'total' => 1000,
-    ]);
-
-    $item = PurchaseOrderItem::create([
-        'purchase_order_id' => $po->id,
-        'variant_id' => $this->variant->id,
-        'quantity_ordered' => 10,
-        'quantity_received' => 0,
-        'unit_cost' => 100,
-        'subtotal' => 1000,
-    ]);
-
+    $po = createPO();
+    $item = createPOItem($po);
     $inventory = app(InventoryService::class);
 
     // First partial reception: 6 units
@@ -140,27 +132,11 @@ it('handles partial reception', function () {
 });
 
 it('updates PO item and variant cost when price differs at reception', function () {
-    $po = PurchaseOrder::create([
-        'supplier_id' => $this->supplier->id,
-        'location_id' => $this->location->id,
-        'status' => PurchaseOrderStatus::Sent,
-        'order_date' => today(),
-        'total' => 1000,
-    ]);
-
-    $item = PurchaseOrderItem::create([
-        'purchase_order_id' => $po->id,
-        'variant_id' => $this->variant->id,
-        'quantity_ordered' => 10,
-        'quantity_received' => 0,
-        'unit_cost' => 100,
-        'subtotal' => 1000,
-    ]);
-
+    $po = createPO();
+    $item = createPOItem($po);
     $inventory = app(InventoryService::class);
     $confirmedPrice = 120;
 
-    // Simulate reception with different price
     $item->increment('quantity_received', 10);
     $item->update([
         'unit_cost' => $confirmedPrice,
@@ -186,24 +162,9 @@ it('updates PO item and variant cost when price differs at reception', function 
 });
 
 it('creates receipt records with items', function () {
-    $po = PurchaseOrder::create([
-        'supplier_id' => $this->supplier->id,
-        'location_id' => $this->location->id,
-        'status' => PurchaseOrderStatus::Sent,
-        'order_date' => today(),
-        'total' => 1000,
-    ]);
+    $po = createPO();
+    $item = createPOItem($po);
 
-    $item = PurchaseOrderItem::create([
-        'purchase_order_id' => $po->id,
-        'variant_id' => $this->variant->id,
-        'quantity_ordered' => 10,
-        'quantity_received' => 0,
-        'unit_cost' => 100,
-        'subtotal' => 1000,
-    ]);
-
-    // Create receipt record
     $receipt = PurchaseOrderReceipt::create([
         'purchase_order_id' => $po->id,
         'received_at' => now(),

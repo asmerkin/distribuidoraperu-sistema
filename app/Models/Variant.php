@@ -67,12 +67,27 @@ class Variant extends Model
         return $this->hasMany(SupplierVariant::class);
     }
 
+    public function getLabel(): string
+    {
+        $label = "[{$this->sku}] {$this->product->name}";
+
+        if ($this->name !== 'Default') {
+            $label .= " — {$this->name}";
+        }
+
+        return $label;
+    }
+
     public function defaultSupplierVariant(): ?SupplierVariant
     {
+        if ($this->relationLoaded('supplierVariants')) {
+            return $this->supplierVariants->firstWhere('is_default', true);
+        }
+
         return $this->supplierVariants()->where('is_default', true)->first();
     }
 
-    public function getCostPriceAttribute(): ?float
+    public function getCostPriceAttribute(): float
     {
         $sv = $this->defaultSupplierVariant();
 

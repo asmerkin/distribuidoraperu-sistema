@@ -175,14 +175,9 @@ class StockTransferPage extends Page
             userId: auth()->id(),
         );
 
-        $label = "[{$variant->sku}] {$variant->product->name}";
-        if ($variant->name !== 'Default') {
-            $label .= " — {$variant->name}";
-        }
-
         Notification::make()
             ->title('Transferencia realizada')
-            ->body("{$label}: {$this->quantity} ud. de {$from->name} → {$to->name}")
+            ->body("{$variant->getLabel()}: {$this->quantity} ud. de {$from->name} → {$to->name}")
             ->success()
             ->send();
 
@@ -200,14 +195,8 @@ class StockTransferPage extends Page
             ->limit(10)
             ->get()
             ->map(function (StockMovement $movement) {
-                $variant = $movement->variant;
-                $label = "[{$variant->sku}] {$variant->product->name}";
-                if ($variant->name !== 'Default') {
-                    $label .= " — {$variant->name}";
-                }
-
                 return [
-                    'label' => $label,
+                    'label' => $movement->variant->getLabel(),
                     'quantity' => $movement->quantity,
                     'location' => $movement->location->name,
                     'notes' => $movement->notes,

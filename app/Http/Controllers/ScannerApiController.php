@@ -78,18 +78,23 @@ class ScannerApiController extends Controller
         $code = trim($request->code);
         $device = auth('scanner')->user();
 
-        $variant = Variant::where('sku', $code)
+        $variant = Variant::with('product')
+            ->where('sku', $code)
             ->orWhere('barcode', $code)
             ->first();
 
         if (! $variant) {
-            $variant = Variant::where('sku', 'like', "%{$code}%")
-                ->orWhere('barcode', 'like', "%{$code}%")
+            $variant = Variant::with('product')
+                ->where(function ($q) use ($code) {
+                    $q->where('sku', 'like', "%{$code}%")
+                        ->orWhere('barcode', 'like', "%{$code}%");
+                })
                 ->first();
         }
 
         if (! $variant) {
-            $variant = Variant::whereHas('product', fn ($q) => $q->where('name', 'like', "%{$code}%"))
+            $variant = Variant::with('product')
+                ->whereHas('product', fn ($q) => $q->where('name', 'like', "%{$code}%"))
                 ->first();
         }
 
@@ -99,10 +104,6 @@ class ScannerApiController extends Controller
             ], 404);
         }
 
-        $currentStock = InventoryLevel::where('variant_id', $variant->id)
-            ->where('location_id', $device->location_id)
-            ->first()?->quantity ?? 0;
-
         return response()->json([
             'variant' => [
                 'id' => $variant->id,
@@ -111,7 +112,7 @@ class ScannerApiController extends Controller
                 'name' => $variant->name,
                 'product_name' => $variant->product->name,
                 'cost_price' => $variant->cost_price,
-                'current_stock' => $currentStock,
+                'current_stock' => $this->getCurrentStock($variant->id, $device->location_id),
             ],
         ]);
     }
@@ -127,10 +128,7 @@ class ScannerApiController extends Controller
         $variant = Variant::findOrFail($request->variant_id);
         $location = $device->location;
 
-        $currentStock = InventoryLevel::where('variant_id', $variant->id)
-            ->where('location_id', $location->id)
-            ->first()?->quantity ?? 0;
-
+        $currentStock = $this->getCurrentStock($variant->id, $location->id);
         $counted = (int) $request->counted_quantity;
         $diff = $counted - $currentStock;
 
@@ -174,10 +172,7 @@ class ScannerApiController extends Controller
         $variant = Variant::findOrFail($request->variant_id);
         $location = $device->location;
 
-        $currentStock = InventoryLevel::where('variant_id', $variant->id)
-            ->where('location_id', $location->id)
-            ->first()?->quantity ?? 0;
-
+        $currentStock = $this->getCurrentStock($variant->id, $location->id);
         $qty = (int) $request->quantity;
 
         $type = $qty > 0 ? StockMovementType::In : StockMovementType::Out;
@@ -198,5 +193,12 @@ class ScannerApiController extends Controller
             'adjustment' => $qty,
             'new_stock' => $currentStock + $qty,
         ]);
+    }
+
+    private function getCurrentStock(string $variantId, string $locationId): int
+    {
+        return InventoryLevel::where('variant_id', $variantId)
+            ->where('location_id', $locationId)
+            ->first()?->quantity ?? 0;
     }
 }

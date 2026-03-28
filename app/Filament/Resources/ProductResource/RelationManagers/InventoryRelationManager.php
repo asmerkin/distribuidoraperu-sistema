@@ -89,11 +89,10 @@ class InventoryRelationManager extends RelationManager
                     ->modalWidth('lg')
                     ->form(function (Variant $record) use ($locations): array {
                         $fields = [];
+                        $levels = $record->inventoryLevels->keyBy('location_id');
 
                         foreach ($locations as $location) {
-                            $level = InventoryLevel::where('variant_id', $record->id)
-                                ->where('location_id', $location->id)
-                                ->first();
+                            $level = $levels->get($location->id);
 
                             $hasStock = $level !== null;
                             $currentQty = $level?->quantity ?? 0;
@@ -136,12 +135,11 @@ class InventoryRelationManager extends RelationManager
                     ->action(function (Variant $record, array $data) use ($locations) {
                         $inventory = app(InventoryService::class);
                         $adjustments = 0;
+                        $levels = $record->inventoryLevels()->get()->keyBy('location_id');
 
                         foreach ($locations as $location) {
                             $enabled = (bool) ($data["enabled_{$location->id}"] ?? false);
-                            $level = InventoryLevel::where('variant_id', $record->id)
-                                ->where('location_id', $location->id)
-                                ->first();
+                            $level = $levels->get($location->id);
 
                             $currentQty = $level?->quantity ?? 0;
 
@@ -199,9 +197,11 @@ class InventoryRelationManager extends RelationManager
 
                             if ($diff !== 0 || $minStockChanged) {
                                 $adjustments++;
-                                $level = InventoryLevel::where('variant_id', $record->id)
-                                    ->where('location_id', $location->id)
-                                    ->first();
+                                if ($diff !== 0) {
+                                    $level = InventoryLevel::where('variant_id', $record->id)
+                                        ->where('location_id', $location->id)
+                                        ->first();
+                                }
                                 $level?->update(['min_stock' => $newMinStock]);
                             }
                         }

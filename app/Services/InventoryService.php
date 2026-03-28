@@ -23,29 +23,27 @@ class InventoryService
         ?string $notes = null,
         ?int $userId = null,
     ): StockMovement {
-        return DB::transaction(function () use ($variant, $location, $type, $reason, $quantity, $reference, $notes, $userId) {
-            $movement = StockMovement::create([
-                'variant_id' => $variant->id,
-                'location_id' => $location->id,
-                'type' => $type,
-                'reason' => $reason,
-                'quantity' => $quantity,
-                'reference_type' => $reference?->getMorphClass(),
-                'reference_id' => $reference?->getKey(),
-                'notes' => $notes,
-                'user_id' => $userId,
-            ]);
+        $movement = StockMovement::create([
+            'variant_id' => $variant->id,
+            'location_id' => $location->id,
+            'type' => $type,
+            'reason' => $reason,
+            'quantity' => $quantity,
+            'reference_type' => $reference?->getMorphClass(),
+            'reference_id' => $reference?->getKey(),
+            'notes' => $notes,
+            'user_id' => $userId,
+        ]);
 
-            $inventoryLevel = InventoryLevel::firstOrCreate(
-                ['variant_id' => $variant->id, 'location_id' => $location->id],
-                ['quantity' => 0, 'min_stock' => 0],
-            );
+        $inventoryLevel = InventoryLevel::firstOrCreate(
+            ['variant_id' => $variant->id, 'location_id' => $location->id],
+            ['quantity' => 0, 'min_stock' => 0],
+        );
 
-            $delta = $this->calculateDelta($type, $quantity);
-            $inventoryLevel->increment('quantity', $delta);
+        $delta = $this->calculateDelta($type, $quantity);
+        $inventoryLevel->increment('quantity', $delta);
 
-            return $movement;
-        });
+        return $movement;
     }
 
     private function calculateDelta(StockMovementType $type, int $quantity): int

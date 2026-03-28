@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\SupplierResource\Widgets;
 
+use App\Enums\SupplierInvoiceStatus;
 use App\Models\Supplier;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -18,9 +19,9 @@ class SupplierStatsWidget extends StatsOverviewWidget
         $totalFacturado = (float) $supplier->invoices()->sum('total');
         $totalPagado = (float) $supplier->invoices()->sum('amount_paid');
         $totalAdeudado = $totalFacturado - $totalPagado;
-        $facturasImpagas = $supplier->invoices()->where('status', '!=', 'paid')->count();
+        $facturasImpagas = $supplier->invoices()->where('status', '!=', SupplierInvoiceStatus::Paid)->count();
         $facturasVencidas = $supplier->invoices()
-            ->where('status', '!=', 'paid')
+            ->where('status', '!=', SupplierInvoiceStatus::Paid)
             ->whereNotNull('due_date')
             ->where('due_date', '<', today())
             ->count();

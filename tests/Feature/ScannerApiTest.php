@@ -15,7 +15,6 @@ beforeEach(function () {
         'sku' => 'RESMA-001',
         'barcode' => '7790000000123',
         'name' => 'Default',
-        'cost_price' => 150,
     ]);
 });
 
@@ -35,6 +34,15 @@ function createAuthenticatedDevice(): array
     $device->update(['token' => hash('sha256', $rawToken)]);
 
     return [$device, $rawToken];
+}
+
+function seedInventoryLevel(int $quantity = 10): InventoryLevel
+{
+    return InventoryLevel::create([
+        'variant_id' => test()->variant->id,
+        'location_id' => test()->location->id,
+        'quantity' => $quantity,
+    ]);
 }
 
 it('exchanges valid OTP for a permanent token', function () {
@@ -148,12 +156,7 @@ it('returns 404 for unknown barcode', function () {
 it('submits stock adjustment', function () {
     [$device, $token] = createAuthenticatedDevice();
 
-    // Seed initial stock
-    InventoryLevel::create([
-        'variant_id' => $this->variant->id,
-        'location_id' => $this->location->id,
-        'quantity' => 10,
-    ]);
+    seedInventoryLevel(10);
 
     $response = $this->postJson('/api/scanner/adjust', [
         'variant_id' => $this->variant->id,
@@ -188,11 +191,7 @@ it('submits stock adjustment', function () {
 it('submits positive quick adjustment', function () {
     [$device, $token] = createAuthenticatedDevice();
 
-    InventoryLevel::create([
-        'variant_id' => $this->variant->id,
-        'location_id' => $this->location->id,
-        'quantity' => 10,
-    ]);
+    seedInventoryLevel(10);
 
     $response = $this->postJson('/api/scanner/quick-adjust', [
         'variant_id' => $this->variant->id,
@@ -222,11 +221,7 @@ it('submits positive quick adjustment', function () {
 it('submits negative quick adjustment', function () {
     [$device, $token] = createAuthenticatedDevice();
 
-    InventoryLevel::create([
-        'variant_id' => $this->variant->id,
-        'location_id' => $this->location->id,
-        'quantity' => 10,
-    ]);
+    seedInventoryLevel(10);
 
     $response = $this->postJson('/api/scanner/quick-adjust', [
         'variant_id' => $this->variant->id,
@@ -269,11 +264,7 @@ it('rejects zero quick adjustment', function () {
 it('handles zero difference adjustment', function () {
     [$device, $token] = createAuthenticatedDevice();
 
-    InventoryLevel::create([
-        'variant_id' => $this->variant->id,
-        'location_id' => $this->location->id,
-        'quantity' => 10,
-    ]);
+    seedInventoryLevel(10);
 
     $response = $this->postJson('/api/scanner/adjust', [
         'variant_id' => $this->variant->id,

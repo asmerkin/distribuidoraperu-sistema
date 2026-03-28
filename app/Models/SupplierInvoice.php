@@ -91,17 +91,26 @@ class SupplierInvoice extends Model
         };
     }
 
+    protected static function booted(): void
+    {
+        static::creating(function (SupplierInvoice $invoice) {
+            $invoice->status ??= SupplierInvoiceStatus::Unpaid;
+            $invoice->amount_paid ??= 0;
+        });
+    }
+
     public function recalculateFromPayments(): void
     {
-        $paid = (float) $this->payments()->sum('amount');
+        $paid = round((float) $this->payments()->sum('amount'), 2);
+        $total = round((float) $this->total, 2);
 
         $this->update([
             'amount_paid' => $paid,
-            'status' => $paid <= 0
-                ? SupplierInvoiceStatus::Unpaid
-                : ($paid >= (float) $this->total
-                    ? SupplierInvoiceStatus::Paid
-                    : SupplierInvoiceStatus::PartiallyPaid),
+            'status' => match (true) {
+                $paid <= 0 => SupplierInvoiceStatus::Unpaid,
+                $paid >= $total => SupplierInvoiceStatus::Paid,
+                default => SupplierInvoiceStatus::PartiallyPaid,
+            },
         ]);
     }
 }

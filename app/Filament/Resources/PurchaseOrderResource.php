@@ -374,15 +374,7 @@ class PurchaseOrderResource extends Resource
                     ->label('Estado')
                     ->badge()
                     ->formatStateUsing(fn (PurchaseOrderStatus $state) => $state->label())
-                    ->color(fn (PurchaseOrderStatus $state) => match ($state) {
-                        PurchaseOrderStatus::Draft             => 'gray',
-                        PurchaseOrderStatus::Sent              => 'info',
-                        PurchaseOrderStatus::Confirmed         => 'success',
-                        PurchaseOrderStatus::Rejected          => 'danger',
-                        PurchaseOrderStatus::PartiallyReceived => 'warning',
-                        PurchaseOrderStatus::Received          => 'success',
-                        PurchaseOrderStatus::Cancelled         => 'danger',
-                    }),
+                    ->color(fn (PurchaseOrderStatus $state) => $state->color()),
 
                 TextColumn::make('order_date')
                     ->label('Fecha')

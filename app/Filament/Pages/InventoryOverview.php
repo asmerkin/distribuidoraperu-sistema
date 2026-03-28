@@ -2,9 +2,11 @@
 
 namespace App\Filament\Pages;
 
+use App\Enums\PurchaseOrderStatus;
 use App\Models\Category;
 use App\Models\InventoryLevel;
 use App\Models\Location;
+use App\Models\PurchaseOrderItem;
 use Filament\Pages\Page;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
@@ -39,7 +41,16 @@ class InventoryOverview extends Page implements HasTable
                 InventoryLevel::query()
                     ->with([
                         'variant.product.category',
+                        'variant.supplierVariants',
                         'location',
+                    ])
+                    ->addSelect(['inventory_levels.*',
+                        'pending_po_qty' => PurchaseOrderItem::selectRaw('COALESCE(SUM(base_quantity_ordered - base_quantity_received), 0)')
+                            ->whereColumn('purchase_order_items.variant_id', 'inventory_levels.variant_id')
+                            ->whereHas('purchaseOrder', fn ($q) => $q->whereIn('status', [
+                                PurchaseOrderStatus::Confirmed,
+                                PurchaseOrderStatus::PartiallyReceived,
+                            ])),
                     ])
             )
             ->columns([
@@ -81,11 +92,10 @@ class InventoryOverview extends Page implements HasTable
                     ->weight('bold')
                     ->color(fn (InventoryLevel $record): string => $record->isLowStock() ? 'danger' : 'success'),
 
-                TextColumn::make('pending_po')
+                TextColumn::make('pending_po_qty')
                     ->label('Pendiente PO')
-                    ->getStateUsing(fn (InventoryLevel $record): int => $record->variant->pendingFromPurchaseOrders())
-                    ->formatStateUsing(fn (int $state): string => $state > 0 ? "+{$state}" : '—')
-                    ->color(fn (InventoryLevel $record): string => $record->variant->pendingFromPurchaseOrders() > 0 ? 'info' : 'gray')
+                    ->formatStateUsing(fn ($state): string => $state > 0 ? "+{$state}" : '—')
+                    ->color(fn ($state): string => $state > 0 ? 'info' : 'gray')
                     ->alignCenter(),
 
                 TextColumn::make('min_stock')

@@ -19,7 +19,6 @@ beforeEach(function () {
         'product_id' => $this->product->id,
         'sku' => 'RESMA-001',
         'name' => 'Default',
-        'cost_price' => 0,
     ]);
     $this->location = Location::create(['name' => 'Depósito Principal']);
 });

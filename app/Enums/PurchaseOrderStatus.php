@@ -16,4 +16,15 @@ enum PurchaseOrderStatus: string
     {
         return __('enums.purchase_order_status.' . $this->value);
     }
+
+    public function color(): string
+    {
+        return match ($this) {
+            self::Draft => 'gray',
+            self::Sent => 'info',
+            self::Confirmed, self::Received => 'success',
+            self::Rejected, self::Cancelled => 'danger',
+            self::PartiallyReceived => 'warning',
+        };
+    }
 }
