@@ -14,6 +14,7 @@ use App\Models\SupplierVariant;
 use App\Services\InventoryService;
 use App\Services\PurchaseOrderPdfService;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Textarea;
@@ -45,10 +46,11 @@ class ViewPurchaseOrder extends ViewRecord
         $record = $this->getRecord();
 
         return [
+            // ── Acciones principales (botones visibles) ──
+
             EditAction::make()
                 ->visible(fn () => $record->status === PurchaseOrderStatus::Draft),
 
-            // --- ENVIAR (Draft → Sent) ---
             Action::make('send')
                 ->label('Enviar al proveedor')
                 ->icon('heroicon-o-paper-airplane')
@@ -89,33 +91,8 @@ class ViewPurchaseOrder extends ViewRecord
                     $this->refreshFormData(['status', 'sent_at']);
                 }),
 
-            // --- REENVIAR EMAIL (Sent o Confirmed) ---
-            Action::make('resend_email')
-                ->label('Reenviar email')
-                ->icon('heroicon-o-envelope')
-                ->color('gray')
-                ->visible(fn () => in_array($record->status, [
-                    PurchaseOrderStatus::Sent,
-                    PurchaseOrderStatus::Confirmed,
-                ]) && $record->supplier->email)
-                ->requiresConfirmation()
-                ->modalHeading('Reenviar email')
-                ->modalDescription("Se reenviará la orden {$record->po_number} por email a {$record->supplier->email}.")
-                ->modalSubmitActionLabel('Reenviar')
-                ->action(function () use ($record) {
-                    Mail::to($record->supplier->email)
-                        ->send(new PurchaseOrderMail($record));
-
-                    Notification::make()
-                        ->title('Email reenviado')
-                        ->body("La orden {$record->po_number} fue reenviada a {$record->supplier->email}.")
-                        ->success()
-                        ->send();
-                }),
-
-            // --- CONFIRMAR (Sent → Confirmed) ---
             Action::make('confirm')
-                ->label('Confirmar (proveedor aceptó)')
+                ->label('Confirmar')
                 ->icon('heroicon-o-check-circle')
                 ->color('success')
                 ->visible(fn () => $record->status === PurchaseOrderStatus::Sent)
@@ -126,76 +103,6 @@ class ViewPurchaseOrder extends ViewRecord
                 ->form(fn () => $this->buildConfirmFormFields())
                 ->action(fn (array $data) => $this->processConfirmation($data)),
 
-            // --- RECHAZAR (Sent → Rejected) ---
-            Action::make('reject')
-                ->label('Rechazar (proveedor rechazó)')
-                ->icon('heroicon-o-x-circle')
-                ->color('danger')
-                ->visible(fn () => $record->status === PurchaseOrderStatus::Sent)
-                ->modalHeading('Rechazar orden de compra')
-                ->modalDescription("Marcar la orden {$record->po_number} como rechazada por el proveedor.")
-                ->modalSubmitActionLabel('Marcar como rechazada')
-                ->form([
-                    Textarea::make('rejection_reason')
-                        ->label('Motivo del rechazo')
-                        ->rows(3)
-                        ->required(),
-                ])
-                ->action(function (array $data) use ($record) {
-                    $record->update([
-                        'status' => PurchaseOrderStatus::Rejected,
-                        'rejected_at' => now(),
-                        'rejection_reason' => $data['rejection_reason'],
-                    ]);
-
-                    Notification::make()
-                        ->title('Orden rechazada')
-                        ->body("La orden {$record->po_number} fue marcada como rechazada.")
-                        ->warning()
-                        ->send();
-
-                    $this->refreshFormData(['status', 'rejected_at', 'rejection_reason']);
-                }),
-
-            // --- REABRIR (Rejected → Draft) ---
-            Action::make('reopen')
-                ->label('Reabrir como borrador')
-                ->icon('heroicon-o-arrow-path')
-                ->color('warning')
-                ->visible(fn () => $record->status === PurchaseOrderStatus::Rejected)
-                ->requiresConfirmation()
-                ->modalHeading('Reabrir orden de compra')
-                ->modalDescription("La orden {$record->po_number} volverá a estado Borrador para modificar y reenviar.")
-                ->modalSubmitActionLabel('Reabrir')
-                ->action(function () use ($record) {
-                    $record->update([
-                        'status' => PurchaseOrderStatus::Draft,
-                        'sent_at' => null,
-                    ]);
-
-                    Notification::make()
-                        ->title('Orden reabierta')
-                        ->body("La orden {$record->po_number} volvió a estado borrador.")
-                        ->success()
-                        ->send();
-
-                    $this->refreshFormData(['status', 'sent_at']);
-                }),
-
-            Action::make('download_pdf')
-                ->label('Descargar PDF')
-                ->icon('heroicon-o-arrow-down-tray')
-                ->color('gray')
-                ->action(function () use ($record) {
-                    $pdf = app(PurchaseOrderPdfService::class)->generate($record);
-
-                    return response()->streamDownload(
-                        fn () => print($pdf->output()),
-                        "OC-{$record->po_number}.pdf",
-                    );
-                }),
-
-            // --- RECIBIR (Confirmed o PartiallyReceived) ---
             Action::make('receive')
                 ->label('Recibir mercadería')
                 ->icon('heroicon-o-truck')
@@ -211,59 +118,150 @@ class ViewPurchaseOrder extends ViewRecord
                 ->form(fn () => $this->buildReceiveFormFields())
                 ->action(fn (array $data) => $this->processReception($data)),
 
-            Action::make('ver_proveedor')
-                ->label('Ver proveedor')
-                ->icon('heroicon-o-truck')
+            Action::make('download_pdf')
+                ->label('PDF')
+                ->icon('heroicon-o-arrow-down-tray')
                 ->color('gray')
-                ->url(fn () => SupplierResource::getUrl('view', ['record' => $record->supplier_id])),
-
-            // --- CANCELAR (Sent, Confirmed o Rejected) ---
-            Action::make('cancel')
-                ->label('Cancelar orden')
-                ->icon('heroicon-o-x-mark')
-                ->color('danger')
-                ->visible(fn () => in_array($record->status, [
-                    PurchaseOrderStatus::Sent,
-                    PurchaseOrderStatus::Confirmed,
-                    PurchaseOrderStatus::Rejected,
-                ]))
-                ->requiresConfirmation()
-                ->modalHeading('Cancelar orden de compra')
-                ->modalDescription("¿Cancelar la orden {$record->po_number}? Esta acción no se puede deshacer.")
-                ->modalSubmitActionLabel('Sí, cancelar')
                 ->action(function () use ($record) {
-                    $record->update([
-                        'status' => PurchaseOrderStatus::Cancelled,
-                    ]);
+                    $pdf = app(PurchaseOrderPdfService::class)->generate($record);
 
-                    Notification::make()
-                        ->title('Orden cancelada')
-                        ->body("La orden {$record->po_number} fue cancelada.")
-                        ->success()
-                        ->send();
-
-                    $this->refreshFormData(['status']);
+                    return response()->streamDownload(
+                        fn () => print($pdf->output()),
+                        "OC-{$record->po_number}.pdf",
+                    );
                 }),
 
-            Action::make('eliminar')
-                ->label('Eliminar')
-                ->color('danger')
-                ->link()
-                ->visible(fn () => $record->status === PurchaseOrderStatus::Draft)
-                ->requiresConfirmation()
-                ->modalHeading('Eliminar orden de compra')
-                ->modalDescription("¿Eliminar la orden {$record->po_number}?")
-                ->action(function () use ($record) {
-                    $record->items()->delete();
-                    $record->delete();
+            // ── Acciones secundarias (menú de 3 puntitos) ──
 
-                    Notification::make()
-                        ->title('Orden eliminada')
-                        ->success()
-                        ->send();
+            ActionGroup::make([
+                Action::make('resend_email')
+                    ->label('Reenviar email')
+                    ->icon('heroicon-o-envelope')
+                    ->visible(fn () => in_array($record->status, [
+                        PurchaseOrderStatus::Sent,
+                        PurchaseOrderStatus::Confirmed,
+                    ]) && $record->supplier->email)
+                    ->requiresConfirmation()
+                    ->modalHeading('Reenviar email')
+                    ->modalDescription("Se reenviará la orden {$record->po_number} por email a {$record->supplier->email}.")
+                    ->modalSubmitActionLabel('Reenviar')
+                    ->action(function () use ($record) {
+                        Mail::to($record->supplier->email)
+                            ->send(new PurchaseOrderMail($record));
 
-                    $this->redirect(PurchaseOrderResource::getUrl());
-                }),
+                        Notification::make()
+                            ->title('Email reenviado')
+                            ->body("La orden {$record->po_number} fue reenviada a {$record->supplier->email}.")
+                            ->success()
+                            ->send();
+                    }),
+
+                Action::make('reject')
+                    ->label('Rechazar (proveedor rechazó)')
+                    ->icon('heroicon-o-x-circle')
+                    ->color('danger')
+                    ->visible(fn () => $record->status === PurchaseOrderStatus::Sent)
+                    ->modalHeading('Rechazar orden de compra')
+                    ->modalDescription("Marcar la orden {$record->po_number} como rechazada por el proveedor.")
+                    ->modalSubmitActionLabel('Marcar como rechazada')
+                    ->form([
+                        Textarea::make('rejection_reason')
+                            ->label('Motivo del rechazo')
+                            ->rows(3)
+                            ->required(),
+                    ])
+                    ->action(function (array $data) use ($record) {
+                        $record->update([
+                            'status' => PurchaseOrderStatus::Rejected,
+                            'rejected_at' => now(),
+                            'rejection_reason' => $data['rejection_reason'],
+                        ]);
+
+                        Notification::make()
+                            ->title('Orden rechazada')
+                            ->body("La orden {$record->po_number} fue marcada como rechazada.")
+                            ->warning()
+                            ->send();
+
+                        $this->refreshFormData(['status', 'rejected_at', 'rejection_reason']);
+                    }),
+
+                Action::make('reopen')
+                    ->label('Reabrir como borrador')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('warning')
+                    ->visible(fn () => $record->status === PurchaseOrderStatus::Rejected)
+                    ->requiresConfirmation()
+                    ->modalHeading('Reabrir orden de compra')
+                    ->modalDescription("La orden {$record->po_number} volverá a estado Borrador para modificar y reenviar.")
+                    ->modalSubmitActionLabel('Reabrir')
+                    ->action(function () use ($record) {
+                        $record->update([
+                            'status' => PurchaseOrderStatus::Draft,
+                            'sent_at' => null,
+                        ]);
+
+                        Notification::make()
+                            ->title('Orden reabierta')
+                            ->body("La orden {$record->po_number} volvió a estado borrador.")
+                            ->success()
+                            ->send();
+
+                        $this->refreshFormData(['status', 'sent_at']);
+                    }),
+
+                Action::make('ver_proveedor')
+                    ->label('Ver proveedor')
+                    ->icon('heroicon-o-building-office')
+                    ->url(fn () => SupplierResource::getUrl('view', ['record' => $record->supplier_id])),
+
+                Action::make('cancel')
+                    ->label('Cancelar orden')
+                    ->icon('heroicon-o-x-mark')
+                    ->color('danger')
+                    ->visible(fn () => in_array($record->status, [
+                        PurchaseOrderStatus::Sent,
+                        PurchaseOrderStatus::Confirmed,
+                        PurchaseOrderStatus::Rejected,
+                    ]))
+                    ->requiresConfirmation()
+                    ->modalHeading('Cancelar orden de compra')
+                    ->modalDescription("¿Cancelar la orden {$record->po_number}? Esta acción no se puede deshacer.")
+                    ->modalSubmitActionLabel('Sí, cancelar')
+                    ->action(function () use ($record) {
+                        $record->update([
+                            'status' => PurchaseOrderStatus::Cancelled,
+                        ]);
+
+                        Notification::make()
+                            ->title('Orden cancelada')
+                            ->body("La orden {$record->po_number} fue cancelada.")
+                            ->success()
+                            ->send();
+
+                        $this->refreshFormData(['status']);
+                    }),
+
+                Action::make('eliminar')
+                    ->label('Eliminar')
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->visible(fn () => $record->status === PurchaseOrderStatus::Draft)
+                    ->requiresConfirmation()
+                    ->modalHeading('Eliminar orden de compra')
+                    ->modalDescription("¿Eliminar la orden {$record->po_number}?")
+                    ->action(function () use ($record) {
+                        $record->items()->delete();
+                        $record->delete();
+
+                        Notification::make()
+                            ->title('Orden eliminada')
+                            ->success()
+                            ->send();
+
+                        $this->redirect(PurchaseOrderResource::getUrl());
+                    }),
+            ]),
         ];
     }
 
