@@ -225,8 +225,22 @@ class ViewPurchaseOrder extends ViewRecord
                         PurchaseOrderStatus::Rejected,
                     ]))
                     ->requiresConfirmation()
-                    ->modalHeading('Cancelar orden de compra')
-                    ->modalDescription("¿Cancelar la orden {$record->po_number}? Esta acción no se puede deshacer.")
+                    ->modalHeading(fn () => in_array($record->status, [
+                        PurchaseOrderStatus::Sent,
+                        PurchaseOrderStatus::Confirmed,
+                        PurchaseOrderStatus::PartiallyReceived,
+                    ]) ? 'Cancelar orden confirmada' : 'Cancelar orden')
+                    ->modalDescription(function () use ($record) {
+                        if ($record->status === PurchaseOrderStatus::PartiallyReceived) {
+                            return "Esta orden ya tiene recepciones parciales registradas. Al cancelarla no se revertirá el stock ya ingresado. ¿Confirmar cancelación de {$record->po_number}?";
+                        }
+
+                        if (in_array($record->status, [PurchaseOrderStatus::Sent, PurchaseOrderStatus::Confirmed])) {
+                            return "Esta orden ya fue enviada al proveedor. ¿Confirmar cancelación de {$record->po_number}?";
+                        }
+
+                        return "¿Cancelar la orden {$record->po_number}? Esta acción no se puede deshacer.";
+                    })
                     ->modalSubmitActionLabel('Sí, cancelar')
                     ->action(function () use ($record) {
                         $record->update([
