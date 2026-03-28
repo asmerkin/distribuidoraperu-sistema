@@ -83,7 +83,15 @@ class ReceiptsRelationManager extends RelationManager
                             ->schema([
                                 TextEntry::make('variant.sku')->label('SKU'),
                                 TextEntry::make('variant.product.name')->label('Producto'),
-                                TextEntry::make('quantity_received')->label('Cantidad'),
+                                TextEntry::make('quantity_received')
+                                    ->label('Cantidad')
+                                    ->formatStateUsing(function ($state, $record) {
+                                        if ($record->base_quantity_received && $record->base_quantity_received != $state) {
+                                            return "{$state} ({$record->base_quantity_received} uds. base)";
+                                        }
+
+                                        return $state;
+                                    }),
                                 TextEntry::make('unit_cost')->label('Precio')->money('ARS'),
                             ])
                             ->columns(4),
@@ -104,21 +112,23 @@ class ReceiptsRelationManager extends RelationManager
 
                         DB::transaction(function () use ($record, $po, $inventory) {
                             foreach ($record->items()->with('variant', 'purchaseOrderItem')->get() as $receiptItem) {
-                                // Revert stock: create salida movement
+                                // Revert stock: create salida movement (in BASE UNITS)
+                                $baseQty = $receiptItem->base_quantity_received ?: $receiptItem->quantity_received;
                                 $inventory->recordMovement(
                                     variant: $receiptItem->variant,
                                     location: $po->location,
                                     type: StockMovementType::Out,
                                     reason: StockMovementReason::Purchase,
-                                    quantity: $receiptItem->quantity_received,
+                                    quantity: $baseQty,
                                     reference: $po,
                                     notes: "Anulación recepción OC {$po->po_number}",
                                     userId: auth()->id(),
                                 );
 
-                                // Revert PO item quantity_received
+                                // Revert PO item quantity_received (purchase units + base units)
                                 $poItem = $receiptItem->purchaseOrderItem;
                                 $poItem->decrement('quantity_received', $receiptItem->quantity_received);
+                                $poItem->decrement('base_quantity_received', $baseQty);
                             }
 
                             // Mark receipt as voided

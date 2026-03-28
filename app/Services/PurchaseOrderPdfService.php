@@ -12,7 +12,7 @@ class PurchaseOrderPdfService
 {
     public function generate(PurchaseOrder $purchaseOrder): DomPDF
     {
-        $purchaseOrder->loadMissing('supplier', 'items.variant.product', 'location', 'user');
+        $purchaseOrder->loadMissing('supplier', 'items.variant.product', 'items.supplierVariant', 'location', 'user');
 
         $company = [
             'name' => Setting::get('company_name'),
@@ -22,7 +22,7 @@ class PurchaseOrderPdfService
             'email' => Setting::get('company_email'),
         ];
 
-        // Build supplier code lookup: variant_id => supplier_code
+        // Build supplier code lookup: variant_id => supplier_code (fallback for legacy items without supplier_variant_id)
         $variantIds = $purchaseOrder->items->pluck('variant_id');
         $supplierCodes = SupplierVariant::where('supplier_id', $purchaseOrder->supplier_id)
             ->whereIn('variant_id', $variantIds)

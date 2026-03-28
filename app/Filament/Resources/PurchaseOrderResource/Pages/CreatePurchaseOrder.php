@@ -11,8 +11,17 @@ class CreatePurchaseOrder extends CreateRecord
 
     protected function afterCreate(): void
     {
-        $this->getRecord()->update([
-            'total' => $this->getRecord()->items()->sum('subtotal'),
+        $record = $this->getRecord();
+        $record->load('items');
+
+        foreach ($record->items as $item) {
+            $item->updateQuietly([
+                'base_quantity_ordered' => $item->quantity_ordered * max($item->purchase_unit_qty, 1),
+            ]);
+        }
+
+        $record->update([
+            'total' => $record->items()->sum('subtotal'),
         ]);
     }
 

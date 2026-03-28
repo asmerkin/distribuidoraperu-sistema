@@ -12,6 +12,7 @@ use App\Models\PurchaseOrderReceipt;
 use App\Models\PurchaseOrderReceiptItem;
 use App\Models\StockMovement;
 use App\Models\Supplier;
+use App\Models\SupplierVariant;
 use App\Models\Variant;
 use App\Services\InventoryService;
 
@@ -23,7 +24,13 @@ beforeEach(function () {
         'product_id' => $this->product->id,
         'sku' => 'RESMA-001',
         'name' => 'Default',
+    ]);
+    $this->supplierVariant = SupplierVariant::create([
+        'supplier_id' => $this->supplier->id,
+        'variant_id' => $this->variant->id,
+        'supplier_code' => 'RESMA-001',
         'cost_price' => 100,
+        'is_default' => true,
     ]);
 });
 
@@ -58,7 +65,7 @@ it('receives full PO and creates stock movements', function () {
     );
 
     $item->increment('quantity_received', 10);
-    $this->variant->update(['cost_price' => $item->unit_cost]);
+    $this->supplierVariant->update(['cost_price' => $item->unit_cost]);
 
     $item->refresh();
     expect($item->quantity_received)->toBe(10);
@@ -159,7 +166,7 @@ it('updates PO item and variant cost when price differs at reception', function 
         'unit_cost' => $confirmedPrice,
         'subtotal' => $item->quantity_ordered * $confirmedPrice,
     ]);
-    $this->variant->update(['cost_price' => $confirmedPrice]);
+    $this->supplierVariant->update(['cost_price' => $confirmedPrice]);
 
     $inventory->recordMovement(
         variant: $this->variant,
@@ -171,11 +178,11 @@ it('updates PO item and variant cost when price differs at reception', function 
     );
 
     $item->refresh();
-    $this->variant->refresh();
+    $this->supplierVariant->refresh();
 
     expect($item->unit_cost)->toBe('120.00');
     expect($item->subtotal)->toBe('1200.00');
-    expect($this->variant->cost_price)->toBe('120.00');
+    expect($this->supplierVariant->cost_price)->toBe('120.00');
 });
 
 it('creates receipt records with items', function () {

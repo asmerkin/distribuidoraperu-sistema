@@ -16,6 +16,7 @@ class SupplierVariantPriceLog extends Model
         'supplier_variant_id',
         'old_price',
         'new_price',
+        'purchase_unit_qty',
         'changed_at',
         'user_id',
     ];
@@ -25,6 +26,7 @@ class SupplierVariantPriceLog extends Model
         return [
             'old_price' => 'decimal:2',
             'new_price' => 'decimal:2',
+            'purchase_unit_qty' => 'integer',
             'changed_at' => 'datetime',
         ];
     }

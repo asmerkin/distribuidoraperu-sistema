@@ -59,13 +59,27 @@ class SupplierVariantsRelationManager extends RelationManager
 
             TextInput::make('supplier_code')
                 ->label('Código del proveedor')
+                ->required()
                 ->maxLength(255),
 
             TextInput::make('cost_price')
-                ->label('Precio de costo')
+                ->label('Precio por unidad de compra')
                 ->numeric()
                 ->prefix('$')
                 ->required(),
+
+            TextInput::make('purchase_unit')
+                ->label('Unidad de compra')
+                ->placeholder('Ej: Caja x12, Pack x6')
+                ->maxLength(255),
+
+            TextInput::make('purchase_unit_qty')
+                ->label('Uds. base por unidad de compra')
+                ->integer()
+                ->default(1)
+                ->minValue(1)
+                ->required()
+                ->helperText('Cuántas unidades base contiene cada unidad de compra'),
 
             Toggle::make('is_default')
                 ->label('Proveedor predeterminado')
@@ -96,6 +110,10 @@ class SupplierVariantsRelationManager extends RelationManager
                     ->label('Cód. Proveedor')
                     ->placeholder('—')
                     ->searchable(),
+
+                TextColumn::make('purchase_unit')
+                    ->label('Unidad compra')
+                    ->placeholder('—'),
 
                 TextColumn::make('cost_price')
                     ->label('Precio')
@@ -145,11 +163,14 @@ class SupplierVariantsRelationManager extends RelationManager
                                     TextEntry::make('new_price')
                                         ->label('Nuevo')
                                         ->money('ARS'),
+                                    TextEntry::make('purchase_unit_qty')
+                                        ->label('Uds./compra')
+                                        ->formatStateUsing(fn ($state) => $state > 1 ? "×{$state}" : '—'),
                                     TextEntry::make('user.name')
                                         ->label('Usuario')
                                         ->placeholder('Sistema'),
                                 ])
-                                ->columns(4),
+                                ->columns(5),
                         ];
                     }),
 

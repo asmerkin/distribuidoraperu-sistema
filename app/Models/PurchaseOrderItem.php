@@ -13,8 +13,13 @@ class PurchaseOrderItem extends Model
     protected $fillable = [
         'purchase_order_id',
         'variant_id',
+        'supplier_variant_id',
+        'purchase_unit',
+        'purchase_unit_qty',
         'quantity_ordered',
         'quantity_received',
+        'base_quantity_ordered',
+        'base_quantity_received',
         'unit_cost',
         'subtotal',
     ];
@@ -24,6 +29,9 @@ class PurchaseOrderItem extends Model
         return [
             'quantity_ordered' => 'integer',
             'quantity_received' => 'integer',
+            'base_quantity_ordered' => 'integer',
+            'base_quantity_received' => 'integer',
+            'purchase_unit_qty' => 'integer',
             'unit_cost' => 'decimal:2',
             'subtotal' => 'decimal:2',
         ];
@@ -37,5 +45,10 @@ class PurchaseOrderItem extends Model
     public function variant(): BelongsTo
     {
         return $this->belongsTo(Variant::class);
+    }
+
+    public function supplierVariant(): BelongsTo
+    {
+        return $this->belongsTo(SupplierVariant::class);
     }
 }

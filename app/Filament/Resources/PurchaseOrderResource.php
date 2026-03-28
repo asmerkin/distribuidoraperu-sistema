@@ -8,8 +8,8 @@ use App\Models\Location;
 use App\Models\PurchaseOrder;
 use App\Models\Supplier;
 use App\Models\SupplierVariant;
-use App\Models\Variant;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -104,7 +104,7 @@ class PurchaseOrderResource extends Resource
                         ->label('')
                         ->relationship('items')
                         ->schema([
-                            Select::make('variant_id')
+                            Select::make('supplier_variant_id')
                                 ->label('Producto / Variante')
                                 ->options(function (callable $get) {
                                     $supplierId = $get('../../supplier_id');
@@ -117,9 +117,9 @@ class PurchaseOrderResource extends Resource
                                         ->with('variant.product')
                                         ->get()
                                         ->mapWithKeys(fn (SupplierVariant $sv) => [
-                                            $sv->variant_id => "[{$sv->variant->sku}] {$sv->variant->product->name}"
+                                            $sv->id => "[{$sv->supplier_code}] {$sv->variant->product->name}"
                                                 . ($sv->variant->name !== 'Default' ? " — {$sv->variant->name}" : '')
-                                                . ($sv->supplier_code ? " ({$sv->supplier_code})" : ''),
+                                                . ($sv->purchase_unit ? " ({$sv->purchase_unit})" : ''),
                                         ]);
                                 })
                                 ->searchable()
@@ -128,17 +128,22 @@ class PurchaseOrderResource extends Resource
                                 ->distinct()
                                 ->columnSpan(3)
                                 ->reactive()
-                                ->afterStateUpdated(function ($state, callable $get, callable $set) {
+                                ->afterStateUpdated(function ($state, callable $set) {
                                     if ($state) {
-                                        $supplierId = $get('../../supplier_id');
-                                        $sv = SupplierVariant::where('supplier_id', $supplierId)
-                                            ->where('variant_id', $state)
-                                            ->first();
-
-                                        $price = $sv?->cost_price ?? Variant::find($state)?->cost_price ?? 0;
-                                        $set('unit_cost', $price);
+                                        $sv = SupplierVariant::with('variant')->find($state);
+                                        if ($sv) {
+                                            $set('variant_id', $sv->variant_id);
+                                            $set('unit_cost', $sv->cost_price);
+                                            $set('purchase_unit', $sv->purchase_unit);
+                                            $set('purchase_unit_qty', $sv->purchase_unit_qty ?? 1);
+                                        }
                                     }
                                 }),
+
+                            Hidden::make('variant_id'),
+                            Hidden::make('purchase_unit'),
+                            Hidden::make('purchase_unit_qty')->default(1),
+                            Hidden::make('base_quantity_ordered'),
 
                             TextInput::make('quantity_ordered')
                                 ->label('Cantidad')
@@ -146,17 +151,37 @@ class PurchaseOrderResource extends Resource
                                 ->minValue(1)
                                 ->required()
                                 ->reactive()
-                                ->afterStateUpdated(fn ($state, callable $get, callable $set) =>
-                                    $set('subtotal', round(floatval($state) * floatval($get('unit_cost')), 2))
-                                ),
+                                ->suffix(fn (callable $get) => $get('purchase_unit') ?: null)
+                                ->helperText(function (callable $get) {
+                                    $qty = intval($get('quantity_ordered'));
+                                    $puQty = intval($get('purchase_unit_qty'));
+
+                                    return ($puQty > 1 && $qty > 0)
+                                        ? "= " . ($qty * $puQty) . " unidades base"
+                                        : null;
+                                })
+                                ->afterStateUpdated(function ($state, callable $get, callable $set) {
+                                    $qty = intval($state);
+                                    $puQty = intval($get('purchase_unit_qty')) ?: 1;
+                                    $set('subtotal', round(floatval($state) * floatval($get('unit_cost')), 2));
+                                    $set('base_quantity_ordered', $qty * $puQty);
+                                }),
 
                             TextInput::make('unit_cost')
-                                ->label('Costo unitario')
+                                ->label('Costo unit.')
                                 ->numeric()
                                 ->prefix('$')
                                 ->minValue(0)
                                 ->required()
                                 ->reactive()
+                                ->helperText(function (callable $get) {
+                                    $puQty = intval($get('purchase_unit_qty'));
+                                    $cost = floatval($get('unit_cost'));
+
+                                    return ($puQty > 1 && $cost > 0)
+                                        ? '$ ' . number_format($cost / $puQty, 2, ',', '.') . ' /ud. base'
+                                        : null;
+                                })
                                 ->afterStateUpdated(fn ($state, callable $get, callable $set) =>
                                     $set('subtotal', round(floatval($get('quantity_ordered')) * floatval($state), 2))
                                 ),

@@ -313,12 +313,31 @@ class ViewPurchaseOrder extends ViewRecord
                         ->schema([
                             TextEntry::make('variant.sku')->label('SKU'),
                             TextEntry::make('variant.product.name')->label('Producto'),
-                            TextEntry::make('quantity_ordered')->label('Pedido'),
-                            TextEntry::make('quantity_received')->label('Recibido'),
+                            TextEntry::make('purchase_unit')->label('Unidad compra')->placeholder('—'),
+                            TextEntry::make('quantity_ordered')
+                                ->label('Pedido')
+                                ->formatStateUsing(function ($state, $record) {
+                                    $puQty = $record->purchase_unit_qty ?? 1;
+                                    if ($puQty > 1) {
+                                        return "{$state} ({$record->base_quantity_ordered} uds. base)";
+                                    }
+
+                                    return $state;
+                                }),
+                            TextEntry::make('quantity_received')
+                                ->label('Recibido')
+                                ->formatStateUsing(function ($state, $record) {
+                                    $puQty = $record->purchase_unit_qty ?? 1;
+                                    if ($puQty > 1 && $state > 0) {
+                                        return "{$state} ({$record->base_quantity_received} uds. base)";
+                                    }
+
+                                    return $state;
+                                }),
                             TextEntry::make('unit_cost')->label('Costo unit.')->money('ARS'),
                             TextEntry::make('subtotal')->label('Subtotal')->money('ARS'),
                         ])
-                        ->columns(6),
+                        ->columns(8),
                 ]),
         ])->columns(1);
     }
@@ -341,7 +360,12 @@ class ViewPurchaseOrder extends ViewRecord
                 $label .= " — {$item->variant->name}";
             }
 
+            $description = $item->purchase_unit
+                ? "Unidad de compra: {$item->purchase_unit} (×{$item->purchase_unit_qty} uds. base)"
+                : null;
+
             $fields[] = \Filament\Schemas\Components\Section::make($label)
+                ->description($description)
                 ->schema([
                     Grid::make(2)->schema([
                         TextInput::make("qty_{$item->id}")
@@ -349,10 +373,11 @@ class ViewPurchaseOrder extends ViewRecord
                             ->integer()
                             ->default($item->quantity_ordered)
                             ->minValue(0)
-                            ->required(),
+                            ->required()
+                            ->suffix($item->purchase_unit ?: null),
 
                         TextInput::make("price_{$item->id}")
-                            ->label('Precio unitario')
+                            ->label($item->purchase_unit ? "Precio por {$item->purchase_unit}" : 'Precio unitario')
                             ->numeric()
                             ->prefix('$')
                             ->default($item->unit_cost)
@@ -383,10 +408,12 @@ class ViewPurchaseOrder extends ViewRecord
                 $price = (float) ($data["price_{$item->id}"] ?? $item->unit_cost);
 
                 if ($qty != $item->quantity_ordered || $price != (float) $item->unit_cost) {
+                    $puQty = max($item->purchase_unit_qty, 1);
                     $item->update([
                         'quantity_ordered' => $qty,
                         'unit_cost' => $price,
                         'subtotal' => $qty * $price,
+                        'base_quantity_ordered' => $qty * $puQty,
                     ]);
                 }
             }
@@ -427,8 +454,14 @@ class ViewPurchaseOrder extends ViewRecord
                 $label .= " — {$item->variant->name}";
             }
 
+            $unitLabel = $item->purchase_unit ?: 'uds.';
+            $description = "Pedido: {$item->quantity_ordered} {$unitLabel} | Recibido: {$item->quantity_received} | Pendiente: {$pending}";
+            if ($item->purchase_unit_qty > 1) {
+                $description .= " (1 {$item->purchase_unit} = {$item->purchase_unit_qty} uds. base)";
+            }
+
             $fields[] = \Filament\Schemas\Components\Section::make($label)
-                ->description("Pedido: {$item->quantity_ordered} | Recibido: {$item->quantity_received} | Pendiente: {$pending}")
+                ->description($description)
                 ->schema([
                     \Filament\Schemas\Components\Grid::make(2)->schema([
                         TextInput::make("qty_{$item->id}")
@@ -437,10 +470,10 @@ class ViewPurchaseOrder extends ViewRecord
                             ->default(0)
                             ->minValue(0)
                             ->maxValue($pending)
-                            ->suffix("/ {$pending}"),
+                            ->suffix($item->purchase_unit ? "{$item->purchase_unit} / {$pending}" : "/ {$pending}"),
 
                         TextInput::make("price_{$item->id}")
-                            ->label('Precio unitario')
+                            ->label($item->purchase_unit ? "Precio por {$item->purchase_unit}" : 'Precio unitario')
                             ->numeric()
                             ->prefix('$')
                             ->default($item->unit_cost)
@@ -480,12 +513,15 @@ class ViewPurchaseOrder extends ViewRecord
             }
 
             $confirmedPrice = (float) ($data["price_{$item->id}"] ?? $item->unit_cost);
+            $puQty = max($item->purchase_unit_qty, 1);
+            $baseQty = $qty * $puQty;
             $anyReceived = true;
 
             $receiptItems[] = [
                 'purchase_order_item_id' => $item->id,
                 'variant_id' => $item->variant->id,
                 'quantity_received' => $qty,
+                'base_quantity_received' => $baseQty,
                 'unit_cost' => $confirmedPrice,
             ];
         }
@@ -508,10 +544,12 @@ class ViewPurchaseOrder extends ViewRecord
                 }
 
                 $qty = $receiptItem['quantity_received'];
+                $baseQty = $receiptItem['base_quantity_received'];
                 $confirmedPrice = $receiptItem['unit_cost'];
 
-                // Update PO item
+                // Update PO item (purchase units + base units)
                 $item->increment('quantity_received', $qty);
+                $item->increment('base_quantity_received', $baseQty);
 
                 // Update price if different
                 if ($confirmedPrice != (float) $item->unit_cost) {
@@ -522,21 +560,25 @@ class ViewPurchaseOrder extends ViewRecord
                 }
 
                 // Update supplier-variant cost price (triggers price log via model events)
-                $supplierVariant = SupplierVariant::where('supplier_id', $record->supplier_id)
-                    ->where('variant_id', $item->variant->id)
-                    ->first();
+                if ($item->supplier_variant_id) {
+                    $supplierVariant = SupplierVariant::find($item->supplier_variant_id);
+                } else {
+                    $supplierVariant = SupplierVariant::where('supplier_id', $record->supplier_id)
+                        ->where('variant_id', $item->variant->id)
+                        ->first();
+                }
 
                 if ($supplierVariant) {
                     $supplierVariant->update(['cost_price' => $confirmedPrice]);
                 }
 
-                // Create stock movement
+                // Create stock movement (in BASE UNITS)
                 $inventory->recordMovement(
                     variant: $item->variant,
                     location: $record->location,
                     type: StockMovementType::In,
                     reason: StockMovementReason::Purchase,
-                    quantity: $qty,
+                    quantity: $baseQty,
                     reference: $record,
                     notes: "Recepción OC {$record->po_number}",
                     userId: auth()->id(),

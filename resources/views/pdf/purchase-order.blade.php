@@ -326,14 +326,19 @@
             @foreach($purchaseOrder->items as $index => $item)
                 <tr>
                     <td>{{ $index + 1 }}</td>
-                    <td>{{ ($supplierCodes[$item->variant_id] ?? null) ?: $item->variant->sku }}</td>
+                    <td>{{ $item->supplierVariant?->supplier_code ?: ($supplierCodes[$item->variant_id] ?? $item->variant->sku) }}</td>
                     <td>
                         {{ $item->variant->product->name }}
                         @if($item->variant->name !== 'Default')
                             — {{ $item->variant->name }}
                         @endif
                     </td>
-                    <td class="center">{{ $item->quantity_ordered }}</td>
+                    <td class="center">
+                        {{ $item->quantity_ordered }}
+                        @if($item->purchase_unit)
+                            <br><small style="color: #666;">{{ $item->purchase_unit }}</small>
+                        @endif
+                    </td>
                     <td class="right">{{ number_format($item->unit_cost, 2, ',', '.') }}</td>
                     <td class="right">{{ number_format($item->subtotal, 2, ',', '.') }}</td>
                 </tr>

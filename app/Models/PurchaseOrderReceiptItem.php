@@ -15,6 +15,7 @@ class PurchaseOrderReceiptItem extends Model
         'purchase_order_item_id',
         'variant_id',
         'quantity_received',
+        'base_quantity_received',
         'unit_cost',
     ];
 
@@ -22,6 +23,7 @@ class PurchaseOrderReceiptItem extends Model
     {
         return [
             'quantity_received' => 'integer',
+            'base_quantity_received' => 'integer',
             'unit_cost' => 'decimal:2',
         ];
     }
