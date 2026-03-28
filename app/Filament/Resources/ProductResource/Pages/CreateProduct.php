@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\ProductResource\Pages;
 
 use App\Filament\Resources\ProductResource;
-use App\Models\Variant;
+use App\Services\ProductService;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Pages\CreateRecord;
@@ -53,14 +53,15 @@ class CreateProduct extends CreateRecord
     protected function afterCreate(): void
     {
         $data = $this->form->getState();
+        $service = app(ProductService::class);
 
         foreach ($data['initial_variants'] ?? [] as $variant) {
-            $this->record->variants()->create([
-                'sku' => $variant['sku'],
-                'name' => $variant['name'] ?: 'Default',
-                'barcode' => $variant['barcode'] ?? null,
-                'is_active' => true,
-            ]);
+            $service->createVariant(
+                productId: $this->record->id,
+                sku: $variant['sku'],
+                name: $variant['name'] ?: 'Default',
+                barcode: $variant['barcode'] ?? null,
+            );
         }
     }
 
