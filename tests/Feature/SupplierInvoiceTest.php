@@ -9,14 +9,29 @@ beforeEach(function () {
     $this->supplier = Supplier::create(['name' => 'Proveedor Test']);
 });
 
-it('creates an invoice with impaga status', function () {
-    $invoice = SupplierInvoice::create([
-        'supplier_id' => $this->supplier->id,
-        'invoice_number' => 'FC-001',
+function makeInvoice(string $number, float $total, ?Supplier $supplier = null): SupplierInvoice
+{
+    return SupplierInvoice::create([
+        'supplier_id' => $supplier?->id ?? Supplier::first()->id,
+        'invoice_number' => $number,
         'date' => today(),
-        'due_date' => today()->addDays(30),
-        'total' => 1000,
+        'total' => $total,
     ]);
+}
+
+function addPayment(SupplierInvoice $invoice, float $amount): void
+{
+    SupplierPayment::create([
+        'supplier_invoice_id' => $invoice->id,
+        'amount' => $amount,
+        'date' => today(),
+    ]);
+    $invoice->recalculateFromPayments();
+    $invoice->refresh();
+}
+
+it('creates an invoice with impaga status', function () {
+    $invoice = makeInvoice('FC-001', 1000, $this->supplier);
 
     $invoice->refresh();
     expect($invoice->status)->toBe(SupplierInvoiceStatus::Unpaid);
@@ -25,14 +40,9 @@ it('creates an invoice with impaga status', function () {
 });
 
 it('changes to pago_parcial after partial payment', function () {
-    $invoice = SupplierInvoice::create([
-        'supplier_id' => $this->supplier->id,
-        'invoice_number' => 'FC-002',
-        'date' => today(),
-        'total' => 1000,
-    ]);
+    $invoice = makeInvoice('FC-002', 1000, $this->supplier);
 
-    $invoice->recordPayment(400);
+    addPayment($invoice, 400);
 
     expect($invoice->status)->toBe(SupplierInvoiceStatus::PartiallyPaid);
     expect($invoice->amount_paid)->toBe('400.00');
@@ -40,33 +50,37 @@ it('changes to pago_parcial after partial payment', function () {
 });
 
 it('changes to pagada after full payment', function () {
-    $invoice = SupplierInvoice::create([
-        'supplier_id' => $this->supplier->id,
-        'invoice_number' => 'FC-003',
-        'date' => today(),
-        'total' => 500,
-    ]);
+    $invoice = makeInvoice('FC-003', 500, $this->supplier);
 
-    $invoice->recordPayment(500);
+    addPayment($invoice, 500);
 
     expect($invoice->status)->toBe(SupplierInvoiceStatus::Paid);
     expect($invoice->balance)->toBe(0.0);
 });
 
 it('changes to pagada after multiple partial payments', function () {
-    $invoice = SupplierInvoice::create([
-        'supplier_id' => $this->supplier->id,
-        'invoice_number' => 'FC-004',
-        'date' => today(),
-        'total' => 1000,
-    ]);
+    $invoice = makeInvoice('FC-004', 1000, $this->supplier);
 
-    $invoice->recordPayment(300);
+    addPayment($invoice, 300);
     expect($invoice->status)->toBe(SupplierInvoiceStatus::PartiallyPaid);
 
-    $invoice->recordPayment(700);
+    addPayment($invoice, 700);
     expect($invoice->status)->toBe(SupplierInvoiceStatus::Paid);
     expect($invoice->balance)->toBe(0.0);
+});
+
+it('reverts to impaga when a payment is deleted', function () {
+    $invoice = makeInvoice('FC-010', 1000, $this->supplier);
+
+    addPayment($invoice, 1000);
+    expect($invoice->status)->toBe(SupplierInvoiceStatus::Paid);
+
+    $invoice->payments()->first()->delete();
+    $invoice->recalculateFromPayments();
+    $invoice->refresh();
+
+    expect($invoice->status)->toBe(SupplierInvoiceStatus::Unpaid);
+    expect($invoice->amount_paid)->toBe('0.00');
 });
 
 it('detects overdue invoices', function () {
@@ -92,7 +106,7 @@ it('does not mark paid invoices as overdue', function () {
         'total' => 500,
     ]);
 
-    $invoice->recordPayment(500);
+    addPayment($invoice, 500);
 
     expect($invoice->is_overdue)->toBeFalse();
     expect($invoice->display_status)->toBe('Pagada');
