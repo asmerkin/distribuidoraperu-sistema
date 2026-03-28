@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ProductResource\Pages;
 
 use App\Filament\Resources\ProductResource;
+use App\Models\Variant;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Pages\CreateRecord;
@@ -29,7 +30,8 @@ class CreateProduct extends CreateRecord
                             TextInput::make('sku')
                                 ->label('SKU')
                                 ->required()
-                                ->maxLength(255),
+                                ->maxLength(255)
+                                ->rules(['unique:variants,sku']),
 
                             TextInput::make('name')
                                 ->label('Nombre')

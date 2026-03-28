@@ -581,6 +581,11 @@ class ViewPurchaseOrder extends ViewRecord
                     notes: "Recepción OC {$record->po_number}",
                     userId: auth()->id(),
                 );
+
+                // Auto-activate product on first reception
+                if (! $item->variant->product->is_active) {
+                    $item->variant->product->update(['is_active' => true]);
+                }
             }
 
             // Create receipt record

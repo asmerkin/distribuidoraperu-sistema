@@ -3,24 +3,27 @@
 namespace App\Filament\Resources;
 
 use App\Enums\PurchaseOrderStatus;
+use App\Enums\UnitOfMeasure;
 use App\Filament\Resources\PurchaseOrderResource\Pages;
+use App\Models\Category;
 use App\Models\Location;
 use App\Models\PurchaseOrder;
 use App\Models\Supplier;
 use App\Models\SupplierVariant;
+use App\Models\Variant;
+use App\Services\ProductService;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Radio;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -138,6 +141,153 @@ class PurchaseOrderResource extends Resource
                                             $set('purchase_unit_qty', $sv->purchase_unit_qty ?? 1);
                                         }
                                     }
+                                })
+                                ->createOptionForm([
+                                    Radio::make('mode')
+                                        ->label('¿Qué querés agregar?')
+                                        ->options([
+                                            'new_product' => 'Producto nuevo',
+                                            'new_variant' => 'Variante nueva de un producto existente',
+                                            'existing_variant' => 'Variante existente (solo vincular al proveedor)',
+                                        ])
+                                        ->default('new_product')
+                                        ->reactive()
+                                        ->required()
+                                        ->columnSpanFull(),
+
+                                    // ── Producto nuevo ──
+                                    TextInput::make('product_name')
+                                        ->label('Nombre del producto')
+                                        ->required()
+                                        ->maxLength(255)
+                                        ->visible(fn (callable $get) => $get('mode') === 'new_product'),
+
+                                    Select::make('category_id')
+                                        ->label('Categoría')
+                                        ->options(Category::query()->orderBy('name')->pluck('name', 'id'))
+                                        ->searchable()
+                                        ->preload()
+                                        ->visible(fn (callable $get) => $get('mode') === 'new_product'),
+
+                                    Select::make('unit_of_measure')
+                                        ->label('Unidad de medida')
+                                        ->options(collect(UnitOfMeasure::cases())->mapWithKeys(
+                                            fn (UnitOfMeasure $u) => [$u->value => $u->label()]
+                                        ))
+                                        ->default('unit')
+                                        ->required()
+                                        ->visible(fn (callable $get) => $get('mode') === 'new_product'),
+
+                                    // ── Variante nueva de producto existente ──
+                                    Select::make('product_id')
+                                        ->label('Producto')
+                                        ->options(
+                                            \App\Models\Product::query()
+                                                ->orderBy('name')
+                                                ->pluck('name', 'id')
+                                        )
+                                        ->searchable()
+                                        ->preload()
+                                        ->required()
+                                        ->visible(fn (callable $get) => $get('mode') === 'new_variant'),
+
+                                    TextInput::make('variant_name')
+                                        ->label('Nombre de la variante')
+                                        ->placeholder('Ej: Azul, Grande, 500ml')
+                                        ->required()
+                                        ->maxLength(255)
+                                        ->visible(fn (callable $get) => $get('mode') === 'new_variant'),
+
+                                    // ── SKU (para producto nuevo y variante nueva) ──
+                                    TextInput::make('sku')
+                                        ->label('SKU interno')
+                                        ->required()
+                                        ->maxLength(255)
+                                        ->rules(['unique:variants,sku'])
+                                        ->visible(fn (callable $get) => in_array($get('mode'), ['new_product', 'new_variant'])),
+
+                                    // ── Variante existente ──
+                                    Select::make('variant_id')
+                                        ->label('Producto / Variante')
+                                        ->options(
+                                            Variant::query()
+                                                ->with('product')
+                                                ->get()
+                                                ->mapWithKeys(fn (Variant $v) => [
+                                                    $v->id => "[{$v->sku}] {$v->product->name}"
+                                                        . ($v->name !== 'Default' ? " — {$v->name}" : ''),
+                                                ])
+                                        )
+                                        ->searchable()
+                                        ->preload()
+                                        ->required()
+                                        ->visible(fn (callable $get) => $get('mode') === 'existing_variant'),
+
+                                    // ── Campos comunes (datos del proveedor) ──
+                                    TextInput::make('supplier_code')
+                                        ->label('Código del proveedor')
+                                        ->required()
+                                        ->maxLength(255),
+
+                                    TextInput::make('cost_price')
+                                        ->label('Precio por unidad de compra')
+                                        ->numeric()
+                                        ->prefix('$')
+                                        ->required()
+                                        ->minValue(0),
+
+                                    TextInput::make('purchase_unit')
+                                        ->label('Unidad de compra')
+                                        ->placeholder('Ej: Caja x12, Pack x6'),
+
+                                    TextInput::make('purchase_unit_qty')
+                                        ->label('Uds. base por unidad de compra')
+                                        ->integer()
+                                        ->default(1)
+                                        ->minValue(1)
+                                        ->required(),
+                                ])
+                                ->createOptionModalHeading('Agregar producto al proveedor')
+                                ->createOptionUsing(function (array $data, $livewire) {
+                                    $supplierId = $livewire->data['supplier_id'] ?? null;
+
+                                    if (! $supplierId) {
+                                        throw \Illuminate\Validation\ValidationException::withMessages([
+                                            'supplier_code' => 'Seleccioná un proveedor primero.',
+                                        ]);
+                                    }
+
+                                    $service = app(ProductService::class);
+
+                                    $variantId = match ($data['mode']) {
+                                        'new_product' => $service->createWithVariant(
+                                            name: $data['product_name'],
+                                            sku: $data['sku'],
+                                            unitOfMeasure: $data['unit_of_measure'] ?? 'unit',
+                                            categoryId: $data['category_id'] ?? null,
+                                            isActive: false,
+                                        )['variant']->id,
+
+                                        'new_variant' => $service->createVariant(
+                                            productId: $data['product_id'],
+                                            sku: $data['sku'],
+                                            name: $data['variant_name'],
+                                        )->id,
+
+                                        'existing_variant' => $data['variant_id'],
+                                    };
+
+                                    $sv = $service->createSupplierVariant(
+                                        variantId: $variantId,
+                                        supplierId: $supplierId,
+                                        supplierCode: $data['supplier_code'],
+                                        costPrice: $data['cost_price'],
+                                        purchaseUnit: $data['purchase_unit'] ?? null,
+                                        purchaseUnitQty: $data['purchase_unit_qty'] ?? 1,
+                                        isDefault: $data['mode'] === 'new_product',
+                                    );
+
+                                    return $sv->getKey();
                                 }),
 
                             Hidden::make('variant_id'),
