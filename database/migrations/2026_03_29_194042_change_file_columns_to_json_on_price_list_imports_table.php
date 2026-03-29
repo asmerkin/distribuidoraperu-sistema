@@ -17,9 +17,20 @@ return new class extends Migration
             ]);
         });
 
+        // Use raw SQL for PostgreSQL compatibility (USING clause required)
+        $driver = Schema::getConnection()->getDriverName();
+
+        if ($driver === 'pgsql') {
+            DB::statement('ALTER TABLE price_list_imports ALTER COLUMN file_path TYPE json USING file_path::json');
+            DB::statement('ALTER TABLE price_list_imports ALTER COLUMN file_name TYPE json USING file_name::json');
+        } else {
+            Schema::table('price_list_imports', function (Blueprint $table) {
+                $table->json('file_path')->change();
+                $table->json('file_name')->change();
+            });
+        }
+
         Schema::table('price_list_imports', function (Blueprint $table) {
-            $table->json('file_path')->change();
-            $table->json('file_name')->change();
             $table->dropColumn('file_type');
         });
     }
