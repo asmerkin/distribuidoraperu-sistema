@@ -58,6 +58,13 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
             ->globalSearchFieldKeyBindingSuffix()
+            ->renderHook(PanelsRenderHook::SCRIPTS_BEFORE, fn () => new HtmlString(
+                '<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>' .
+                '<script>' . file_get_contents(resource_path('js/barcode-scanner.js')) . '</script>'
+            ))
+            ->renderHook(PanelsRenderHook::BODY_END, fn () => new HtmlString(
+                view('components.barcode-scanner-modal')->render()
+            ))
             ->renderHook(PanelsRenderHook::STYLES_AFTER, fn () => new HtmlString('
                 <link rel="preconnect" href="https://fonts.googleapis.com">
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

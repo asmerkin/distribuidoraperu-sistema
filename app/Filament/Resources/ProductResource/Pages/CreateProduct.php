@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ProductResource\Pages;
 
 use App\Filament\Resources\ProductResource;
+use App\Filament\Support\BarcodeInput;
 use App\Services\ProductService;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
@@ -38,9 +39,7 @@ class CreateProduct extends CreateRecord
                                 ->placeholder('Default')
                                 ->maxLength(255),
 
-                            TextInput::make('barcode')
-                                ->label('Código de barras')
-                                ->maxLength(255),
+                            BarcodeInput::make('barcode'),
                         ])
                         ->columns(3)
                         ->addActionLabel('Agregar variante')

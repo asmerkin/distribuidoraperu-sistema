@@ -9,6 +9,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\FileUpload;
+use App\Filament\Support\BarcodeInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -42,9 +43,7 @@ class VariantsRelationManager extends RelationManager
                 ->required()
                 ->maxLength(255),
 
-            TextInput::make('barcode')
-                ->label('Código de Barras')
-                ->maxLength(255),
+            BarcodeInput::make('barcode'),
 
             FileUpload::make('images')
                 ->label('Imágenes')
