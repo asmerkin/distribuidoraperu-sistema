@@ -4,6 +4,8 @@ namespace App\Filament\Resources\SupplierResource\Pages;
 
 use App\Filament\Resources\SupplierResource;
 use App\Filament\Resources\SupplierResource\Widgets\SupplierStatsWidget;
+use App\Filament\Pages\PriceListUploadPage;
+use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Pages\ViewRecord;
@@ -26,6 +28,11 @@ class ViewSupplier extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('import_price_list')
+                ->label('Importar Precios')
+                ->icon('heroicon-o-document-arrow-up')
+                ->url(fn () => PriceListUploadPage::getUrl(['supplier' => $this->getRecord()->id]))
+                ->color('gray'),
             EditAction::make(),
         ];
     }

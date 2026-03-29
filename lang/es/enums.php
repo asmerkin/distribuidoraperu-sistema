@@ -47,4 +47,13 @@ return [
         'completed' => 'Completada',
         'voided' => 'Anulada',
     ],
+
+    'price_list_import_status' => [
+        'uploading' => 'Subiendo',
+        'parsing' => 'Procesando',
+        'draft' => 'Borrador',
+        'processing' => 'Aplicando',
+        'completed' => 'Completada',
+        'failed' => 'Error',
+    ],
 ];

@@ -13,6 +13,7 @@
         "laravel/framework": "^13.0",
         "laravel/tinker": "^3.0",
         "league/flysystem-aws-s3-v3": "^3.32",
+        "openspout/openspout": "^4.32",
         "symfony/http-client": "^8.0",
         "symfony/postmark-mailer": "^8.0"
     },
