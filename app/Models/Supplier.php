@@ -37,6 +37,11 @@ class Supplier extends Model
         return $this->hasMany(SupplierInvoice::class);
     }
 
+    public function creditNotes(): HasMany
+    {
+        return $this->hasMany(SupplierCreditNote::class);
+    }
+
     public function payments(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
     {
         return $this->hasManyThrough(SupplierPayment::class, SupplierInvoice::class);

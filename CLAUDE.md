@@ -108,9 +108,21 @@ InventoryLevel belongsTo Variant + Location
      - PartiallyReceived: avisa que hay stock ya ingresado que NO se revierte
 ```
 
-**View de PO:** `ViewPurchaseOrder` page con infolist + todas las acciones en header.
+**View de PO:** `ViewPurchaseOrder` page con infolist + todas las acciones en header. Desde una PO recibida/parcial se puede crear una Nota de Crédito (pre-llenada con el supplier + po).
 
-### 4. Facturas de Proveedores
+### 4. Notas de Crédito de Proveedores
+
+**Modelos:** `SupplierCreditNote`, `SupplierCreditNoteItem`. Service central: `SupplierCreditNoteService`.
+
+- NC como documento propio con número interno autogenerado `NC-#####`, más `supplier_document_number` (nullable) para registrar el número que emite el proveedor (ej: NC-A-0001-00000123). Fecha, motivo, adjunto, total. FK opcional a `PurchaseOrder`.
+- `SupplierCreditNoteService::create()` valida stock disponible por `(variant, location)` antes de tocar nada, crea la NC + items, y emite `StockMovement` tipo `Out` con `reason=Return` y `reference=SupplierCreditNote` por cada ítem.
+- Aplicación a factura via "pago virtual": `applyToInvoice()` crea un `SupplierPayment` con `method='credit_note'` y `supplier_credit_note_id` apuntando a la NC. `SupplierInvoice::recalculateFromPayments()` no requiere cambios porque suma todos los pagos.
+- Una NC puede quedar con saldo a favor (balance > 0) o aplicarse parcial/totalmente sobre una o más facturas del mismo proveedor.
+- `unapplyFromInvoice($payment)` elimina la aplicación y recalcula el balance de la factura. Usado automáticamente cuando se borra un pago tipo credit_note desde la UI.
+- NC inmutable: `canEdit=false`, `canDelete=false`. Para corregir un error se crea una NC compensatoria.
+- Integraciones UI: tab en SupplierResource, action "Crear nota de crédito" en `ViewPurchaseOrder` (visible en Received/PartiallyReceived), action "Aplicar nota de crédito" en `PaymentsRelationManager` de SupplierInvoice.
+
+### 5. Facturas de Proveedores
 
 **Modelos:** `SupplierInvoice`, `SupplierPayment`
 
@@ -122,7 +134,7 @@ InventoryLevel belongsTo Variant + Location
 - Filtros: por estado, por vencidas, por rango de fechas, por proveedor
 - Vista del proveedor: tabs con Productos, Facturas, Órdenes de Compra, Pagos + widget de stats
 
-### 5. Scanner PWA / API
+### 6. Scanner PWA / API
 
 **Modelos:** `ScannerDevice` — dispositivos autorizados para el scanner móvil.
 
@@ -131,6 +143,8 @@ InventoryLevel belongsTo Variant + Location
 - Endpoints para registrar ajustes de stock desde el scanner
 
 ### 7. Dashboard
+
+
 
 - Widget: Órdenes Pendientes de Recepción (full width)
 - Widget: Stock Bajo (full width)

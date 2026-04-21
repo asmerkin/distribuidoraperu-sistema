@@ -12,6 +12,7 @@ class SupplierPayment extends Model
 
     protected $fillable = [
         'supplier_invoice_id',
+        'supplier_credit_note_id',
         'amount',
         'date',
         'method',
@@ -32,6 +33,11 @@ class SupplierPayment extends Model
     public function invoice(): BelongsTo
     {
         return $this->belongsTo(SupplierInvoice::class, 'supplier_invoice_id');
+    }
+
+    public function creditNote(): BelongsTo
+    {
+        return $this->belongsTo(SupplierCreditNote::class, 'supplier_credit_note_id');
     }
 
     public function user(): BelongsTo

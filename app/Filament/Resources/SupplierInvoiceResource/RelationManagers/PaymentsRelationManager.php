@@ -2,8 +2,12 @@
 
 namespace App\Filament\Resources\SupplierInvoiceResource\RelationManagers;
 
+use App\Filament\Resources\SupplierCreditNoteResource;
+use App\Models\SupplierCreditNote;
 use App\Models\SupplierPayment;
+use App\Services\SupplierCreditNoteService;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
@@ -49,10 +53,15 @@ class PaymentsRelationManager extends RelationManager
                 TextColumn::make('method')
                     ->label('Medio')
                     ->badge()
+                    ->formatStateUsing(fn (?string $state) => $state === 'credit_note' ? 'Nota de crédito' : $state)
+                    ->color(fn (?string $state) => $state === 'credit_note' ? 'warning' : 'gray')
                     ->placeholder('—'),
 
                 TextColumn::make('reference')
                     ->label('Referencia')
+                    ->url(fn ($record) => $record->supplier_credit_note_id
+                        ? SupplierCreditNoteResource::getUrl('view', ['record' => $record->supplier_credit_note_id])
+                        : null)
                     ->placeholder('—'),
 
                 TextColumn::make('user.name')
@@ -128,7 +137,15 @@ class PaymentsRelationManager extends RelationManager
                     }),
 
                 DeleteAction::make()
+                    ->modalDescription(fn (SupplierPayment $record) => $record->supplier_credit_note_id
+                        ? 'Se removerá la aplicación de la nota de crédito sobre esta factura. La NC volverá a tener saldo a favor.'
+                        : '¿Eliminar este pago?')
                     ->using(function (SupplierPayment $record) use ($invoice): void {
+                        if ($record->supplier_credit_note_id) {
+                            app(SupplierCreditNoteService::class)->unapplyFromInvoice($record);
+                            return;
+                        }
+
                         DB::transaction(function () use ($record, $invoice): void {
                             $record->delete();
                             $invoice->recalculateFromPayments();
@@ -136,6 +153,71 @@ class PaymentsRelationManager extends RelationManager
                     }),
             ])
             ->headerActions([
+                Action::make('aplicar_nc')
+                    ->label('Aplicar nota de crédito')
+                    ->icon('heroicon-o-receipt-refund')
+                    ->color('warning')
+                    ->visible(function () use ($invoice) {
+                        if ($invoice->balance <= 0) {
+                            return false;
+                        }
+                        return SupplierCreditNote::where('supplier_id', $invoice->supplier_id)
+                            ->get()
+                            ->contains(fn (SupplierCreditNote $cn) => $cn->balance > 0);
+                    })
+                    ->modalHeading("Aplicar nota de crédito — Factura {$invoice->invoice_number}")
+                    ->modalSubmitActionLabel('Aplicar')
+                    ->form(function () use ($invoice) {
+                        $availableNotes = SupplierCreditNote::where('supplier_id', $invoice->supplier_id)
+                            ->get()
+                            ->filter(fn (SupplierCreditNote $cn) => $cn->balance > 0);
+
+                        return [
+                            Select::make('supplier_credit_note_id')
+                                ->label('Nota de crédito')
+                                ->options($availableNotes->mapWithKeys(fn (SupplierCreditNote $cn) => [
+                                    $cn->id => "{$cn->credit_note_number} — Saldo $ " . number_format($cn->balance, 2, ',', '.'),
+                                ]))
+                                ->required()
+                                ->searchable()
+                                ->reactive()
+                                ->afterStateUpdated(function ($state, callable $set) use ($invoice) {
+                                    if (! $state) {
+                                        return;
+                                    }
+                                    $cn = SupplierCreditNote::find($state);
+                                    if ($cn) {
+                                        $set('amount', round(min($cn->balance, $invoice->balance), 2));
+                                    }
+                                }),
+
+                            TextInput::make('amount')
+                                ->label('Monto a aplicar')
+                                ->numeric()
+                                ->prefix('$')
+                                ->required()
+                                ->minValue(0.01)
+                                ->maxValue($invoice->balance)
+                                ->helperText('Saldo pendiente de la factura: $ ' . number_format($invoice->balance, 2, ',', '.')),
+                        ];
+                    })
+                    ->action(function (array $data) use ($invoice) {
+                        $creditNote = SupplierCreditNote::findOrFail($data['supplier_credit_note_id']);
+
+                        app(SupplierCreditNoteService::class)->applyToInvoice(
+                            creditNote: $creditNote,
+                            invoice: $invoice,
+                            amount: (float) $data['amount'],
+                            userId: auth()->id(),
+                        );
+
+                        Notification::make()
+                            ->title('NC aplicada')
+                            ->body("Se aplicaron $ " . number_format($data['amount'], 2, ',', '.') . " desde {$creditNote->credit_note_number}.")
+                            ->success()
+                            ->send();
+                    }),
+
                 Action::make('registrar_pago')
                     ->label('Registrar pago')
                     ->icon('heroicon-o-banknotes')

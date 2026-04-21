@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\SupplierResource\Pages;
+use App\Filament\Resources\SupplierResource\RelationManagers\CreditNotesRelationManager;
 use App\Filament\Resources\SupplierResource\RelationManagers\InvoicesRelationManager;
 use App\Filament\Resources\SupplierResource\RelationManagers\SupplierVariantsRelationManager;
 use App\Filament\Resources\SupplierResource\RelationManagers\PaymentsRelationManager;
@@ -192,6 +193,7 @@ class SupplierResource extends Resource
             SupplierVariantsRelationManager::class,
             InvoicesRelationManager::class,
             PurchaseOrdersRelationManager::class,
+            CreditNotesRelationManager::class,
             PaymentsRelationManager::class,
         ];
     }

@@ -4,6 +4,7 @@ namespace App\Filament\Resources\PurchaseOrderResource\Pages;
 
 use App\Enums\PurchaseOrderStatus;
 use App\Filament\Resources\PurchaseOrderResource;
+use App\Filament\Resources\SupplierCreditNoteResource;
 use App\Filament\Resources\SupplierResource;
 use App\Mail\PurchaseOrderMail;
 use App\Services\PurchaseOrderPdfService;
@@ -141,6 +142,19 @@ class ViewPurchaseOrder extends ViewRecord
                 ->modalWidth('lg')
                 ->form(fn () => $this->buildReceiveFormFields())
                 ->action(fn (array $data) => $this->processReception($data)),
+
+            Action::make('create_credit_note')
+                ->label('Crear nota de crédito')
+                ->icon('heroicon-o-receipt-refund')
+                ->color('warning')
+                ->visible(fn () => in_array($record->status, [
+                    PurchaseOrderStatus::PartiallyReceived,
+                    PurchaseOrderStatus::Received,
+                ]))
+                ->url(fn () => SupplierCreditNoteResource::getUrl('create', [
+                    'supplier_id' => $record->supplier_id,
+                    'purchase_order_id' => $record->id,
+                ])),
 
             Action::make('download_pdf')
                 ->label('PDF')

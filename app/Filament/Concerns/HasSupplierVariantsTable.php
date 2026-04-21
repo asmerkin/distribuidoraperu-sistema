@@ -129,6 +129,22 @@ trait HasSupplierVariantsTable
                             TextEntry::make('new_price')
                                 ->label('Nuevo')
                                 ->money('ARS'),
+                            TextEntry::make('variation')
+                                ->label('Variación')
+                                ->state(function ($record) {
+                                    $old = (float) $record->old_price;
+                                    if ($old <= 0) {
+                                        return '—';
+                                    }
+                                    $diff = (float) $record->new_price - $old;
+                                    $pct = round(($diff / $old) * 100, 1);
+                                    $sign = $pct > 0 ? '+' : '';
+                                    return "{$sign}{$pct}%";
+                                })
+                                ->badge()
+                                ->color(fn ($record) => (float) $record->new_price > (float) $record->old_price
+                                    ? 'danger'
+                                    : ((float) $record->new_price < (float) $record->old_price ? 'success' : 'gray')),
                             TextEntry::make('purchase_unit_qty')
                                 ->label('Uds./compra')
                                 ->formatStateUsing(fn ($state) => $state > 1 ? "×{$state}" : '—'),
@@ -136,7 +152,7 @@ trait HasSupplierVariantsTable
                                 ->label('Usuario')
                                 ->placeholder('Sistema'),
                         ])
-                        ->columns(5),
+                        ->columns(6),
                 ];
             });
     }
