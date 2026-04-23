@@ -5,7 +5,6 @@ namespace App\Filament\Widgets;
 use App\Enums\PurchaseOrderStatus;
 use App\Filament\Resources\PurchaseOrderResource;
 use App\Models\PurchaseOrder;
-use Filament\Tables\Columns\BadgeColumn;
 use Filament\Support\Enums\FontFamily;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -13,7 +12,7 @@ use Filament\Widgets\TableWidget;
 
 class PendingPurchaseOrdersWidget extends TableWidget
 {
-    protected int | string | array $columnSpan = 'full';
+    protected int|string|array $columnSpan = 'full';
 
     public function table(Table $table): Table
     {

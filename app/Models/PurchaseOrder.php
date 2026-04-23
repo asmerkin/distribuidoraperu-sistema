@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\DB;
 
 class PurchaseOrder extends Model
 {
@@ -22,7 +21,7 @@ class PurchaseOrder extends Model
                     ->selectRaw('MAX(CAST(SUBSTRING(po_number, 4) AS UNSIGNED)) as max_num')
                     ->value('max_num');
                 $next = ($last ?? 0) + 1;
-                $po->po_number = 'PO-' . str_pad($next, 5, '0', STR_PAD_LEFT);
+                $po->po_number = 'PO-'.str_pad($next, 5, '0', STR_PAD_LEFT);
             }
 
             if (empty($po->status)) {

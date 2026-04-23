@@ -5,28 +5,31 @@ namespace App\Filament\Resources;
 use App\Enums\PurchaseOrderStatus;
 use App\Enums\UnitOfMeasure;
 use App\Filament\Resources\PurchaseOrderResource\Pages;
+use App\Filament\Resources\PurchaseOrderResource\RelationManagers\ReceiptsRelationManager;
 use App\Models\Category;
 use App\Models\Location;
+use App\Models\Product;
 use App\Models\PurchaseOrder;
 use App\Models\Supplier;
 use App\Models\SupplierVariant;
 use App\Models\Variant;
 use App\Services\ProductService;
-use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Radio;
 use Filament\Resources\Resource;
-use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Validation\ValidationException;
 
 class PurchaseOrderResource extends Resource
 {
@@ -36,9 +39,9 @@ class PurchaseOrderResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Órdenes de Compra';
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-shopping-cart';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-shopping-cart';
 
-    protected static string | \UnitEnum | null $navigationGroup = 'Compras';
+    protected static string|\UnitEnum|null $navigationGroup = 'Compras';
 
     protected static ?int $navigationSort = 1;
 
@@ -121,8 +124,8 @@ class PurchaseOrderResource extends Resource
                                         ->get()
                                         ->mapWithKeys(fn (SupplierVariant $sv) => [
                                             $sv->id => "[{$sv->supplier_code}] {$sv->variant->product->name}"
-                                                . ($sv->variant->name !== 'Default' ? " — {$sv->variant->name}" : '')
-                                                . ($sv->purchase_unit ? " ({$sv->purchase_unit})" : ''),
+                                                .($sv->variant->name !== 'Default' ? " — {$sv->variant->name}" : '')
+                                                .($sv->purchase_unit ? " ({$sv->purchase_unit})" : ''),
                                         ]);
                                 })
                                 ->searchable()
@@ -182,7 +185,7 @@ class PurchaseOrderResource extends Resource
                                     Select::make('product_id')
                                         ->label('Producto')
                                         ->options(
-                                            \App\Models\Product::query()
+                                            Product::query()
                                                 ->orderBy('name')
                                                 ->pluck('name', 'id')
                                         )
@@ -215,7 +218,7 @@ class PurchaseOrderResource extends Resource
                                                 ->get()
                                                 ->mapWithKeys(fn (Variant $v) => [
                                                     $v->id => "[{$v->sku}] {$v->product->name}"
-                                                        . ($v->name !== 'Default' ? " — {$v->name}" : ''),
+                                                        .($v->name !== 'Default' ? " — {$v->name}" : ''),
                                                 ])
                                         )
                                         ->searchable()
@@ -252,7 +255,7 @@ class PurchaseOrderResource extends Resource
                                     $supplierId = $livewire->data['supplier_id'] ?? null;
 
                                     if (! $supplierId) {
-                                        throw \Illuminate\Validation\ValidationException::withMessages([
+                                        throw ValidationException::withMessages([
                                             'supplier_code' => 'Seleccioná un proveedor primero.',
                                         ]);
                                     }
@@ -307,7 +310,7 @@ class PurchaseOrderResource extends Resource
                                     $puQty = intval($get('purchase_unit_qty'));
 
                                     return ($puQty > 1 && $qty > 0)
-                                        ? "= " . ($qty * $puQty) . " unidades base"
+                                        ? '= '.($qty * $puQty).' unidades base'
                                         : null;
                                 })
                                 ->afterStateUpdated(function ($state, callable $get, callable $set) {
@@ -329,11 +332,10 @@ class PurchaseOrderResource extends Resource
                                     $cost = floatval($get('unit_cost'));
 
                                     return ($puQty > 1 && $cost > 0)
-                                        ? '$ ' . number_format($cost / $puQty, 2, ',', '.') . ' /ud. base'
+                                        ? '$ '.number_format($cost / $puQty, 2, ',', '.').' /ud. base'
                                         : null;
                                 })
-                                ->afterStateUpdated(fn ($state, callable $get, callable $set) =>
-                                    $set('subtotal', round(floatval($get('quantity_ordered')) * floatval($state), 2))
+                                ->afterStateUpdated(fn ($state, callable $get, callable $set) => $set('subtotal', round(floatval($get('quantity_ordered')) * floatval($state), 2))
                                 ),
 
                             TextInput::make('subtotal')
@@ -412,8 +414,7 @@ class PurchaseOrderResource extends Resource
                     ->label('Proveedor')
                     ->options(Supplier::query()->orderBy('name')->pluck('name', 'id'))
                     ->searchable(),
-            ])
-;
+            ]);
     }
 
     public static function getGloballySearchableAttributes(): array
@@ -421,16 +422,16 @@ class PurchaseOrderResource extends Resource
         return ['po_number', 'supplier.name'];
     }
 
-    public static function getGlobalSearchResultDetails(\Illuminate\Database\Eloquent\Model $record): array
+    public static function getGlobalSearchResultDetails(Model $record): array
     {
         return array_filter([
             'Proveedor' => $record->supplier?->name,
             'Estado' => $record->status->label(),
-            'Total' => '$ ' . number_format((float) $record->total, 2, ',', '.'),
+            'Total' => '$ '.number_format((float) $record->total, 2, ',', '.'),
         ]);
     }
 
-    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->with(['supplier', 'location']);
     }
@@ -438,17 +439,17 @@ class PurchaseOrderResource extends Resource
     public static function getRelations(): array
     {
         return [
-            \App\Filament\Resources\PurchaseOrderResource\RelationManagers\ReceiptsRelationManager::class,
+            ReceiptsRelationManager::class,
         ];
     }
 
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListPurchaseOrders::route('/'),
+            'index' => Pages\ListPurchaseOrders::route('/'),
             'create' => Pages\CreatePurchaseOrder::route('/create'),
-            'view'   => Pages\ViewPurchaseOrder::route('/{record}'),
-            'edit'   => Pages\EditPurchaseOrder::route('/{record}/edit'),
+            'view' => Pages\ViewPurchaseOrder::route('/{record}'),
+            'edit' => Pages\EditPurchaseOrder::route('/{record}/edit'),
         ];
     }
 }

@@ -42,7 +42,7 @@ class SupplierCreditNote extends Model
                     ->selectRaw('MAX(CAST(SUBSTRING(credit_note_number, 4) AS UNSIGNED)) as max_num')
                     ->value('max_num');
                 $next = ($last ?? 0) + 1;
-                $cn->credit_note_number = 'NC-' . str_pad($next, 5, '0', STR_PAD_LEFT);
+                $cn->credit_note_number = 'NC-'.str_pad($next, 5, '0', STR_PAD_LEFT);
             }
 
             if (empty($cn->user_id) && auth()->check()) {

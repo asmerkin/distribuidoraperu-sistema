@@ -3,13 +3,13 @@
 namespace App\Filament\Resources\ProductResource\RelationManagers;
 
 use App\Filament\Resources\VariantResource;
+use App\Filament\Support\BarcodeInput;
 use App\Models\Variant;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\FileUpload;
-use App\Filament\Support\BarcodeInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\RelationManagers\RelationManager;

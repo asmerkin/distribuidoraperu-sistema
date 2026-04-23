@@ -188,7 +188,7 @@ class ScannerApiController extends Controller
         );
 
         return response()->json([
-            'message' => $qty > 0 ? "Se agregaron $qty unidades" : 'Se quitaron ' . abs($qty) . ' unidades',
+            'message' => $qty > 0 ? "Se agregaron $qty unidades" : 'Se quitaron '.abs($qty).' unidades',
             'previous_stock' => $currentStock,
             'adjustment' => $qty,
             'new_stock' => $currentStock + $qty,

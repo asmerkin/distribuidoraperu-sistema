@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources\SupplierResource\Pages;
 
+use App\Filament\Pages\PriceListUploadPage;
 use App\Filament\Resources\SupplierResource;
 use App\Filament\Resources\SupplierResource\Widgets\SupplierStatsWidget;
-use App\Filament\Pages\PriceListUploadPage;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Infolists\Components\TextEntry;

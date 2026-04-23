@@ -8,7 +8,6 @@ use App\Models\InventoryLevel;
 use App\Models\Location;
 use App\Services\InventoryService;
 use Filament\Actions\Action;
-use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -18,7 +17,6 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Model;
 
 class InventoryLevelsRelationManager extends RelationManager
 {
@@ -156,6 +154,7 @@ class InventoryLevelsRelationManager extends RelationManager
                                 ->title('Sin cambios')
                                 ->info()
                                 ->send();
+
                             return;
                         }
 

@@ -14,6 +14,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
@@ -109,7 +110,7 @@ class InventoryRelationManager extends RelationManager
                                         ->default($hasStock)
                                         ->reactive(),
 
-                                    \Filament\Schemas\Components\Grid::make(2)->schema([
+                                    Grid::make(2)->schema([
                                         TextInput::make("qty_{$location->id}")
                                             ->label('Cantidad')
                                             ->integer()
@@ -180,6 +181,7 @@ class InventoryRelationManager extends RelationManager
                                     'min_stock' => $newMinStock,
                                 ]);
                                 $adjustments++;
+
                                 continue;
                             }
 

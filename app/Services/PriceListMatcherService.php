@@ -9,7 +9,6 @@ class PriceListMatcherService
     /**
      * Match extracted price list items against existing supplier variants.
      *
-     * @param  string  $supplierId
      * @param  array<int, array{code: string, description: string, price: float}>  $extractedItems
      * @return array{changed: array, unchanged: array, unmatched: array}
      */
@@ -34,6 +33,7 @@ class PriceListMatcherService
                     'description' => $item['description'],
                     'new_price' => $item['price'],
                 ];
+
                 continue;
             }
 

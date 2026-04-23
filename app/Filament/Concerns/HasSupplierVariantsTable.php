@@ -139,6 +139,7 @@ trait HasSupplierVariantsTable
                                     $diff = (float) $record->new_price - $old;
                                     $pct = round(($diff / $old) * 100, 1);
                                     $sign = $pct > 0 ? '+' : '';
+
                                     return "{$sign}{$pct}%";
                                 })
                                 ->badge()

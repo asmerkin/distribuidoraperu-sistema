@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Enums\StockMovementReason;
 use App\Enums\StockMovementType;
 use App\Models\StockMovement;
+use Carbon\Carbon;
 use Filament\Forms\Components\DatePicker;
 use Filament\Pages\Page;
 use Filament\Tables\Columns\TextColumn;
@@ -19,9 +20,9 @@ class StockMovementHistory extends Page implements HasTable
 {
     use InteractsWithTable;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-arrow-path';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-arrow-path';
 
-    protected static string | \UnitEnum | null $navigationGroup = 'Inventario';
+    protected static string|\UnitEnum|null $navigationGroup = 'Inventario';
 
     protected static ?string $navigationLabel = 'Movimientos';
 
@@ -155,11 +156,11 @@ class StockMovementHistory extends Page implements HasTable
                         $indicators = [];
 
                         if ($data['from'] ?? null) {
-                            $indicators[] = 'Desde: ' . \Carbon\Carbon::parse($data['from'])->format('d/m/Y');
+                            $indicators[] = 'Desde: '.Carbon::parse($data['from'])->format('d/m/Y');
                         }
 
                         if ($data['until'] ?? null) {
-                            $indicators[] = 'Hasta: ' . \Carbon\Carbon::parse($data['until'])->format('d/m/Y');
+                            $indicators[] = 'Hasta: '.Carbon::parse($data['until'])->format('d/m/Y');
                         }
 
                         return $indicators;

@@ -12,6 +12,7 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Pages\Page;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 
 class PriceListUploadPage extends Page implements HasForms
@@ -73,7 +74,7 @@ class PriceListUploadPage extends Page implements HasForms
         ]);
     }
 
-    public function getRecentImports(): \Illuminate\Support\Collection
+    public function getRecentImports(): Collection
     {
         return PriceListImport::with('supplier', 'user')
             ->latest()

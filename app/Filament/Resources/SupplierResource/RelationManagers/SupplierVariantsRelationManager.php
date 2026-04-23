@@ -38,7 +38,7 @@ class SupplierVariantsRelationManager extends RelationManager
                         ->where('is_active', true)
                         ->get()
                         ->mapWithKeys(fn (Variant $v) => [
-                            $v->id => "[{$v->sku}] {$v->product->name}" . ($v->name !== 'Default' ? " — {$v->name}" : ''),
+                            $v->id => "[{$v->sku}] {$v->product->name}".($v->name !== 'Default' ? " — {$v->name}" : ''),
                         ])
                 )
                 ->searchable()

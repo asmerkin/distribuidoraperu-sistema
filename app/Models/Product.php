@@ -19,6 +19,7 @@ class Product extends Model
         'description',
         'images',
         'category_id',
+        'brand_id',
         'unit_of_measure',
         'is_active',
     ];
@@ -46,6 +47,11 @@ class Product extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function brand(): BelongsTo
+    {
+        return $this->belongsTo(Brand::class);
     }
 
     public function options(): HasMany

@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\ProductResource;
 use App\Filament\Resources\VariantResource\Pages;
 use App\Filament\Resources\VariantResource\RelationManagers\InventoryLevelsRelationManager;
 use App\Filament\Resources\VariantResource\RelationManagers\StockMovementsRelationManager;
@@ -21,7 +20,7 @@ class VariantResource extends Resource
 
     protected static bool $shouldRegisterNavigation = false;
 
-    public static function getIndexUrl(array $parameters = [], bool $isAbsolute = true, ?string $panel = null, ?\Illuminate\Database\Eloquent\Model $tenant = null, bool $shouldGuessMissingParameters = false): string
+    public static function getIndexUrl(array $parameters = [], bool $isAbsolute = true, ?string $panel = null, ?Model $tenant = null, bool $shouldGuessMissingParameters = false): string
     {
         return ProductResource::getUrl('index');
     }

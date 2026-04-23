@@ -2,17 +2,15 @@
 
 namespace App\Filament\Resources\SupplierResource\RelationManagers;
 
-use App\Models\SupplierPayment;
-use Filament\Actions\Action;
+use App\Filament\Resources\SupplierInvoiceResource;
 use Filament\Actions\CreateAction;
-use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Components\Grid;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -73,7 +71,7 @@ class InvoicesRelationManager extends RelationManager
                         return $data;
                     }),
             ])
-            ->recordUrl(fn ($record) => \App\Filament\Resources\SupplierInvoiceResource::getUrl('view', ['record' => $record]));
+            ->recordUrl(fn ($record) => SupplierInvoiceResource::getUrl('view', ['record' => $record]));
     }
 
     private function getInvoiceFormSchema(): array
@@ -89,7 +87,7 @@ class InvoicesRelationManager extends RelationManager
                     modifyRuleUsing: fn ($rule) => $rule->where('supplier_id', $this->getOwnerRecord()->id),
                 ),
 
-            \Filament\Schemas\Components\Grid::make(2)
+            Grid::make(2)
                 ->schema([
                     DatePicker::make('date')
                         ->label('Fecha')

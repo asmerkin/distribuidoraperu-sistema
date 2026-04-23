@@ -13,6 +13,6 @@ enum StockMovementReason: string
 
     public function label(): string
     {
-        return __('enums.stock_movement_reason.' . $this->value);
+        return __('enums.stock_movement_reason.'.$this->value);
     }
 }

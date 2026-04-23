@@ -20,9 +20,9 @@ class InventoryOverview extends Page implements HasTable
 {
     use InteractsWithTable;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-clipboard-document-list';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-clipboard-document-list';
 
-    protected static string | \UnitEnum | null $navigationGroup = 'Inventario';
+    protected static string|\UnitEnum|null $navigationGroup = 'Inventario';
 
     protected static ?string $navigationLabel = 'Stock Actual';
 
@@ -108,7 +108,7 @@ class InventoryOverview extends Page implements HasTable
                     ->label('Valor (ARS)')
                     ->alignEnd()
                     ->getStateUsing(
-                        fn (InventoryLevel $record): string => '$' . number_format(
+                        fn (InventoryLevel $record): string => '$'.number_format(
                             $record->quantity * (float) ($record->variant->cost_price ?? 0),
                             2,
                             ',',

@@ -8,7 +8,6 @@ use App\Models\PurchaseOrder;
 use App\Models\Supplier;
 use App\Models\SupplierCreditNote;
 use App\Models\SupplierVariant;
-use App\Models\Variant;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
@@ -24,6 +23,7 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class SupplierCreditNoteResource extends Resource
 {
@@ -33,9 +33,9 @@ class SupplierCreditNoteResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Notas de Crédito';
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-receipt-refund';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-receipt-refund';
 
-    protected static string | \UnitEnum | null $navigationGroup = 'Compras';
+    protected static string|\UnitEnum|null $navigationGroup = 'Compras';
 
     protected static ?int $navigationSort = 2;
 
@@ -84,6 +84,7 @@ class SupplierCreditNoteResource extends Resource
                             if (! $supplierId) {
                                 return [];
                             }
+
                             return PurchaseOrder::where('supplier_id', $supplierId)
                                 ->orderByDesc('order_date')
                                 ->pluck('po_number', 'id');
@@ -138,8 +139,8 @@ class SupplierCreditNoteResource extends Resource
                                         ->get()
                                         ->mapWithKeys(fn (SupplierVariant $sv) => [
                                             $sv->id => "[{$sv->supplier_code}] {$sv->variant->product->name}"
-                                                . ($sv->variant->name !== 'Default' ? " — {$sv->variant->name}" : '')
-                                                . ($sv->purchase_unit ? " ({$sv->purchase_unit})" : ''),
+                                                .($sv->variant->name !== 'Default' ? " — {$sv->variant->name}" : '')
+                                                .($sv->purchase_unit ? " ({$sv->purchase_unit})" : ''),
                                         ]);
                                 })
                                 ->searchable()
@@ -184,8 +185,9 @@ class SupplierCreditNoteResource extends Resource
                                 ->helperText(function (callable $get) {
                                     $qty = intval($get('quantity'));
                                     $puQty = intval($get('purchase_unit_qty'));
+
                                     return ($puQty > 1 && $qty > 0)
-                                        ? '= ' . ($qty * $puQty) . ' uds. base'
+                                        ? '= '.($qty * $puQty).' uds. base'
                                         : null;
                                 })
                                 ->afterStateUpdated(fn ($state, callable $get, callable $set) => $set(
@@ -303,11 +305,11 @@ class SupplierCreditNoteResource extends Resource
         return ['credit_note_number', 'supplier_document_number', 'supplier.name'];
     }
 
-    public static function getGlobalSearchResultDetails(\Illuminate\Database\Eloquent\Model $record): array
+    public static function getGlobalSearchResultDetails(Model $record): array
     {
         return array_filter([
             'Proveedor' => $record->supplier?->name,
-            'Total' => '$ ' . number_format((float) $record->total, 2, ',', '.'),
+            'Total' => '$ '.number_format((float) $record->total, 2, ',', '.'),
             'Fecha' => $record->date?->format('d/m/Y'),
         ]);
     }

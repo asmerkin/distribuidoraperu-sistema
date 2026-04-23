@@ -69,7 +69,7 @@ class ReceiptsRelationManager extends RelationManager
                     ->label('Ver')
                     ->icon('heroicon-o-eye')
                     ->color('gray')
-                    ->modalHeading(fn (PurchaseOrderReceipt $record) => "Recepción del " . $record->received_at->format('d/m/Y H:i'))
+                    ->modalHeading(fn (PurchaseOrderReceipt $record) => 'Recepción del '.$record->received_at->format('d/m/Y H:i'))
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Cerrar')
                     ->infolist([
@@ -150,7 +150,7 @@ class ReceiptsRelationManager extends RelationManager
 
                         Notification::make()
                             ->title('Recepción anulada')
-                            ->body("Se revirtió el stock. Podés hacer una nueva recepción.")
+                            ->body('Se revirtió el stock. Podés hacer una nueva recepción.')
                             ->success()
                             ->send();
                     }),

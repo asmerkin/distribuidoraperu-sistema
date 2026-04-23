@@ -10,6 +10,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Model;
 
 class CreateProduct extends CreateRecord
 {
@@ -49,7 +50,7 @@ class CreateProduct extends CreateRecord
         ]);
     }
 
-    protected function handleRecordCreation(array $data): \Illuminate\Database\Eloquent\Model
+    protected function handleRecordCreation(array $data): Model
     {
         $formState = $this->form->getState();
         $variants = $formState['initial_variants'] ?? [];

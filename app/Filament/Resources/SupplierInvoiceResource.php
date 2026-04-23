@@ -7,6 +7,7 @@ use App\Filament\Resources\SupplierInvoiceResource\RelationManagers\PaymentsRela
 use App\Models\PurchaseOrder;
 use App\Models\Supplier;
 use App\Models\SupplierInvoice;
+use Carbon\Carbon;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
@@ -20,6 +21,7 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class SupplierInvoiceResource extends Resource
 {
@@ -29,9 +31,9 @@ class SupplierInvoiceResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Facturas';
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-document-text';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-document-text';
 
-    protected static string | \UnitEnum | null $navigationGroup = 'Compras';
+    protected static string|\UnitEnum|null $navigationGroup = 'Compras';
 
     protected static ?int $navigationSort = 3;
 
@@ -42,11 +44,11 @@ class SupplierInvoiceResource extends Resource
         return ['invoice_number', 'supplier.name'];
     }
 
-    public static function getGlobalSearchResultDetails(\Illuminate\Database\Eloquent\Model $record): array
+    public static function getGlobalSearchResultDetails(Model $record): array
     {
         return array_filter([
             'Proveedor' => $record->supplier?->name,
-            'Total' => '$ ' . number_format((float) $record->total, 2, ',', '.'),
+            'Total' => '$ '.number_format((float) $record->total, 2, ',', '.'),
             'Estado' => $record->display_status,
         ]);
     }
@@ -200,10 +202,10 @@ class SupplierInvoiceResource extends Resource
                 Filter::make('date_range')
                     ->label('Rango de fechas')
                     ->form([
-                        \Filament\Forms\Components\DatePicker::make('from')
+                        DatePicker::make('from')
                             ->label('Desde')
                             ->displayFormat('d/m/Y'),
-                        \Filament\Forms\Components\DatePicker::make('until')
+                        DatePicker::make('until')
                             ->label('Hasta')
                             ->displayFormat('d/m/Y'),
                     ])
@@ -215,11 +217,12 @@ class SupplierInvoiceResource extends Resource
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];
                         if ($data['from'] ?? null) {
-                            $indicators[] = 'Desde: ' . \Carbon\Carbon::parse($data['from'])->format('d/m/Y');
+                            $indicators[] = 'Desde: '.Carbon::parse($data['from'])->format('d/m/Y');
                         }
                         if ($data['until'] ?? null) {
-                            $indicators[] = 'Hasta: ' . \Carbon\Carbon::parse($data['until'])->format('d/m/Y');
+                            $indicators[] = 'Hasta: '.Carbon::parse($data['until'])->format('d/m/Y');
                         }
+
                         return $indicators;
                     }),
             ])

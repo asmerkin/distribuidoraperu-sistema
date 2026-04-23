@@ -9,6 +9,7 @@ use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderReceipt;
 use App\Models\PurchaseOrderReceiptItem;
 use App\Models\SupplierVariant;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class PurchaseOrderService
@@ -141,7 +142,7 @@ class PurchaseOrderService
     /**
      * Pre-load supplier variants for all PO items in a single query batch.
      */
-    private function loadSupplierVariants(PurchaseOrder $po): \Illuminate\Support\Collection
+    private function loadSupplierVariants(PurchaseOrder $po): Collection
     {
         $withId = $po->items->filter(fn ($item) => $item->supplier_variant_id);
         $withoutId = $po->items->filter(fn ($item) => ! $item->supplier_variant_id);

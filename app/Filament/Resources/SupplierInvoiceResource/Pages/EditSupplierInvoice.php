@@ -7,6 +7,7 @@ use App\Filament\Resources\SupplierResource;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Support\Facades\Storage;
 
 class EditSupplierInvoice extends EditRecord
 {
@@ -28,7 +29,7 @@ class EditSupplierInvoice extends EditRecord
                     : '¿Eliminar esta factura?')
                 ->action(function () use ($record) {
                     $supplierId = $record->supplier_id;
-                    $disk = \Illuminate\Support\Facades\Storage::disk('public');
+                    $disk = Storage::disk('public');
 
                     foreach ($record->payments as $payment) {
                         if (filled($payment->attachment)) {

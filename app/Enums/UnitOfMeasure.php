@@ -14,6 +14,6 @@ enum UnitOfMeasure: string
 
     public function label(): string
     {
-        return __('enums.unit_of_measure.' . $this->value);
+        return __('enums.unit_of_measure.'.$this->value);
     }
 }

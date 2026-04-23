@@ -16,6 +16,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
@@ -164,7 +165,7 @@ class ViewPurchaseOrder extends ViewRecord
                     $pdf = app(PurchaseOrderPdfService::class)->generate($record);
 
                     return response()->streamDownload(
-                        fn () => print($pdf->output()),
+                        fn () => print ($pdf->output()),
                         "OC-{$record->po_number}.pdf",
                     );
                 }),
@@ -320,7 +321,7 @@ class ViewPurchaseOrder extends ViewRecord
 
             Section::make('Productos')
                 ->schema([
-                    \Filament\Infolists\Components\RepeatableEntry::make('items')
+                    RepeatableEntry::make('items')
                         ->label('')
                         ->schema([
                             TextEntry::make('variant.sku')->label('SKU'),
@@ -371,7 +372,7 @@ class ViewPurchaseOrder extends ViewRecord
                 ? "Unidad de compra: {$item->purchase_unit} (×{$item->purchase_unit_qty} uds. base)"
                 : null;
 
-            $fields[] = \Filament\Schemas\Components\Section::make($item->variant->getLabel())
+            $fields[] = Section::make($item->variant->getLabel())
                 ->description($description)
                 ->schema([
                     Grid::make(2)->schema([
@@ -432,10 +433,10 @@ class ViewPurchaseOrder extends ViewRecord
                 $description .= " (1 {$item->purchase_unit} = {$item->purchase_unit_qty} uds. base)";
             }
 
-            $fields[] = \Filament\Schemas\Components\Section::make($item->variant->getLabel())
+            $fields[] = Section::make($item->variant->getLabel())
                 ->description($description)
                 ->schema([
-                    \Filament\Schemas\Components\Grid::make(2)->schema([
+                    Grid::make(2)->schema([
                         TextInput::make("qty_{$item->id}")
                             ->label('Cantidad a recibir')
                             ->integer()
@@ -456,7 +457,7 @@ class ViewPurchaseOrder extends ViewRecord
         }
 
         if (empty($fields)) {
-            $fields[] = \Filament\Schemas\Components\Section::make('Todo recibido')
+            $fields[] = Section::make('Todo recibido')
                 ->description('No hay ítems pendientes de recepción.');
         }
 

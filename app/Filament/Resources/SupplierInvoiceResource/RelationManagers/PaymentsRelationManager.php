@@ -7,21 +7,22 @@ use App\Models\SupplierCreditNote;
 use App\Models\SupplierPayment;
 use App\Services\SupplierCreditNoteService;
 use Filament\Actions\Action;
-use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
-use Illuminate\Support\Facades\DB;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class PaymentsRelationManager extends RelationManager
 {
@@ -77,16 +78,16 @@ class PaymentsRelationManager extends RelationManager
             ->actions([
                 ViewAction::make()
                     ->infolist([
-                        \Filament\Infolists\Components\TextEntry::make('date')->label('Fecha')->date('d/m/Y'),
-                        \Filament\Infolists\Components\TextEntry::make('amount')->label('Monto')->money('ARS'),
-                        \Filament\Infolists\Components\TextEntry::make('method')->label('Medio de pago')->placeholder('—'),
-                        \Filament\Infolists\Components\TextEntry::make('reference')->label('Referencia')->placeholder('—'),
-                        \Filament\Infolists\Components\TextEntry::make('user.name')->label('Usuario')->placeholder('—'),
-                        \Filament\Infolists\Components\TextEntry::make('notes')->label('Notas')->placeholder('—'),
-                        \Filament\Infolists\Components\TextEntry::make('attachment')
+                        TextEntry::make('date')->label('Fecha')->date('d/m/Y'),
+                        TextEntry::make('amount')->label('Monto')->money('ARS'),
+                        TextEntry::make('method')->label('Medio de pago')->placeholder('—'),
+                        TextEntry::make('reference')->label('Referencia')->placeholder('—'),
+                        TextEntry::make('user.name')->label('Usuario')->placeholder('—'),
+                        TextEntry::make('notes')->label('Notas')->placeholder('—'),
+                        TextEntry::make('attachment')
                             ->label('Comprobante')
                             ->visible(fn ($record) => filled($record->attachment))
-                            ->url(fn ($record) => $record->attachment ? \Illuminate\Support\Facades\Storage::url($record->attachment) : null)
+                            ->url(fn ($record) => $record->attachment ? Storage::url($record->attachment) : null)
                             ->openUrlInNewTab()
                             ->state('Ver comprobante'),
                     ]),
@@ -143,6 +144,7 @@ class PaymentsRelationManager extends RelationManager
                     ->using(function (SupplierPayment $record) use ($invoice): void {
                         if ($record->supplier_credit_note_id) {
                             app(SupplierCreditNoteService::class)->unapplyFromInvoice($record);
+
                             return;
                         }
 
@@ -161,6 +163,7 @@ class PaymentsRelationManager extends RelationManager
                         if ($invoice->balance <= 0) {
                             return false;
                         }
+
                         return SupplierCreditNote::where('supplier_id', $invoice->supplier_id)
                             ->get()
                             ->contains(fn (SupplierCreditNote $cn) => $cn->balance > 0);
@@ -176,7 +179,7 @@ class PaymentsRelationManager extends RelationManager
                             Select::make('supplier_credit_note_id')
                                 ->label('Nota de crédito')
                                 ->options($availableNotes->mapWithKeys(fn (SupplierCreditNote $cn) => [
-                                    $cn->id => "{$cn->credit_note_number} — Saldo $ " . number_format($cn->balance, 2, ',', '.'),
+                                    $cn->id => "{$cn->credit_note_number} — Saldo $ ".number_format($cn->balance, 2, ',', '.'),
                                 ]))
                                 ->required()
                                 ->searchable()
@@ -198,7 +201,7 @@ class PaymentsRelationManager extends RelationManager
                                 ->required()
                                 ->minValue(0.01)
                                 ->maxValue($invoice->balance)
-                                ->helperText('Saldo pendiente de la factura: $ ' . number_format($invoice->balance, 2, ',', '.')),
+                                ->helperText('Saldo pendiente de la factura: $ '.number_format($invoice->balance, 2, ',', '.')),
                         ];
                     })
                     ->action(function (array $data) use ($invoice) {
@@ -213,7 +216,7 @@ class PaymentsRelationManager extends RelationManager
 
                         Notification::make()
                             ->title('NC aplicada')
-                            ->body("Se aplicaron $ " . number_format($data['amount'], 2, ',', '.') . " desde {$creditNote->credit_note_number}.")
+                            ->body('Se aplicaron $ '.number_format($data['amount'], 2, ',', '.')." desde {$creditNote->credit_note_number}.")
                             ->success()
                             ->send();
                     }),
@@ -284,7 +287,7 @@ class PaymentsRelationManager extends RelationManager
 
                         Notification::make()
                             ->title('Pago registrado')
-                            ->body('$ ' . number_format($data['amount'], 2, ',', '.') . " registrado.")
+                            ->body('$ '.number_format($data['amount'], 2, ',', '.').' registrado.')
                             ->success()
                             ->send();
                     }),

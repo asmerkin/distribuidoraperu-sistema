@@ -10,6 +10,7 @@ use App\Models\Variant;
 use App\Services\InventoryService;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Illuminate\Support\Collection;
 
 class StockTransferPage extends Page
 {
@@ -28,10 +29,15 @@ class StockTransferPage extends Page
     protected string $view = 'filament.pages.stock-transfer';
 
     public string $searchCode = '';
+
     public ?string $foundVariantId = null;
+
     public ?string $fromLocationId = null;
+
     public ?string $toLocationId = null;
+
     public ?int $quantity = null;
+
     public string $notes = '';
 
     public function getLocations(): array
@@ -187,7 +193,7 @@ class StockTransferPage extends Page
         $this->searchCode = '';
     }
 
-    public function getRecentTransfers(): \Illuminate\Support\Collection
+    public function getRecentTransfers(): Collection
     {
         return StockMovement::with(['variant.product', 'location', 'user'])
             ->where('reason', StockMovementReason::TransferIn)

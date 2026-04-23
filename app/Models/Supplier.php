@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Enums\SupplierInvoiceStatus;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Supplier extends Model
@@ -42,7 +44,7 @@ class Supplier extends Model
         return $this->hasMany(SupplierCreditNote::class);
     }
 
-    public function payments(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
+    public function payments(): HasManyThrough
     {
         return $this->hasManyThrough(SupplierPayment::class, SupplierInvoice::class);
     }
@@ -51,7 +53,7 @@ class Supplier extends Model
     {
         return round(
             (float) $this->invoices()
-                ->where('status', '!=', \App\Enums\SupplierInvoiceStatus::Paid->value)
+                ->where('status', '!=', SupplierInvoiceStatus::Paid->value)
                 ->selectRaw('COALESCE(SUM(total - amount_paid), 0) as owed')
                 ->value('owed'),
             2,

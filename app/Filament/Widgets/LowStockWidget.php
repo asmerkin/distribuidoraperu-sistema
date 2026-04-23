@@ -10,7 +10,7 @@ use Filament\Widgets\TableWidget;
 
 class LowStockWidget extends TableWidget
 {
-    protected int | string | array $columnSpan = 'full';
+    protected int|string|array $columnSpan = 'full';
 
     public function table(Table $table): Table
     {

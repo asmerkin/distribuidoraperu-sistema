@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 
 class StatsOverview extends StatsOverviewWidget
 {
-    protected int | string | array $columnSpan = 'full';
+    protected int|string|array $columnSpan = 'full';
 
     protected function getStats(): array
     {
@@ -40,7 +40,7 @@ class StatsOverview extends StatsOverviewWidget
             Stat::make('Total Variantes', Variant::count())
                 ->icon('heroicon-o-squares-2x2'),
 
-            Stat::make('Valor del Inventario', '$' . number_format($inventoryValue, 2, ',', '.'))
+            Stat::make('Valor del Inventario', '$'.number_format($inventoryValue, 2, ',', '.'))
                 ->icon('heroicon-o-banknotes')
                 ->color('success'),
 

@@ -175,7 +175,7 @@ class SupplierCreditNoteService
         foreach ($items as $item) {
             $puQty = max((int) ($item['purchase_unit_qty'] ?? 1), 1);
             $baseQty = (int) $item['quantity'] * $puQty;
-            $key = $item['variant_id'] . ':' . $item['location_id'];
+            $key = $item['variant_id'].':'.$item['location_id'];
             $needed[$key] = ($needed[$key] ?? 0) + $baseQty;
         }
 

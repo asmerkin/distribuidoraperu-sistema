@@ -100,7 +100,7 @@ PROMPT;
         }
 
         return [
-            $this->gemini->textPart("Extract products from this price list:\n\n" . implode("\n", $rows)),
+            $this->gemini->textPart("Extract products from this price list:\n\n".implode("\n", $rows)),
         ];
     }
 

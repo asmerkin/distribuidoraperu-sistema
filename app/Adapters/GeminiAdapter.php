@@ -118,10 +118,10 @@ class GeminiAdapter
         $text = substr($text, 0, $lastBrace + 1);
 
         if (! str_starts_with(trim($text), '[')) {
-            $text = '[' . $text;
+            $text = '['.$text;
         }
         if (! str_ends_with(trim($text), ']')) {
-            $text = $text . ']';
+            $text = $text.']';
         }
 
         return $text;

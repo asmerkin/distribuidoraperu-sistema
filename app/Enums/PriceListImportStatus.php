@@ -13,7 +13,7 @@ enum PriceListImportStatus: string
 
     public function label(): string
     {
-        return __('enums.price_list_import_status.' . $this->value);
+        return __('enums.price_list_import_status.'.$this->value);
     }
 
     public function color(): string

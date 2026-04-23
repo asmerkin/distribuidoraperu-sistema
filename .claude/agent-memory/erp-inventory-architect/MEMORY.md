@@ -1,0 +1,2 @@
+- [Supplier returns & credit notes decision](project_supplier_returns_decision.md) — NC as first-class entity, applied via virtual SupplierPayment
+- [Pricing feature scope (V1)](project_pricing_scope_decision.md) — single Variant.sale_price + landed_cost accessor, NOT a sales module

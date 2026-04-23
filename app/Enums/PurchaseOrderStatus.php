@@ -14,7 +14,7 @@ enum PurchaseOrderStatus: string
 
     public function label(): string
     {
-        return __('enums.purchase_order_status.' . $this->value);
+        return __('enums.purchase_order_status.'.$this->value);
     }
 
     public function color(): string

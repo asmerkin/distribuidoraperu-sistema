@@ -10,6 +10,6 @@ enum SupplierInvoiceStatus: string
 
     public function label(): string
     {
-        return __('enums.supplier_invoice_status.' . $this->value);
+        return __('enums.supplier_invoice_status.'.$this->value);
     }
 }

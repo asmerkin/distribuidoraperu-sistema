@@ -24,7 +24,7 @@ return new class extends Migration
         ]);
 
         // Backfill supplier_variant_id from the PO's supplier + item's variant
-        DB::statement("
+        DB::statement('
             UPDATE purchase_order_items
             SET supplier_variant_id = (
                 SELECT sv.id FROM supplier_variants sv
@@ -33,7 +33,7 @@ return new class extends Migration
                 AND sv.variant_id = purchase_order_items.variant_id
                 LIMIT 1
             )
-        ");
+        ');
     }
 
     public function down(): void

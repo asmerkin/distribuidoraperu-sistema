@@ -29,7 +29,7 @@ class EditLocation extends EditRecord
                     if (! empty($relations)) {
                         Notification::make()
                             ->title('No se puede eliminar')
-                            ->body('Esta ubicación tiene ' . implode(' y ', $relations) . ' asociados. Eliminá esos registros primero.')
+                            ->body('Esta ubicación tiene '.implode(' y ', $relations).' asociados. Eliminá esos registros primero.')
                             ->danger()
                             ->send();
 

@@ -2,6 +2,8 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Widgets\LowStockWidget;
+use App\Filament\Widgets\PendingPurchaseOrdersWidget;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -11,14 +13,12 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\View\PanelsRenderHook;
-use App\Filament\Widgets\LowStockWidget;
-use App\Filament\Widgets\PendingPurchaseOrdersWidget;
-use Illuminate\Support\HtmlString;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\HtmlString;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class AdminPanelProvider extends PanelProvider
@@ -59,8 +59,8 @@ class AdminPanelProvider extends PanelProvider
             ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
             ->globalSearchFieldKeyBindingSuffix()
             ->renderHook(PanelsRenderHook::SCRIPTS_BEFORE, fn () => new HtmlString(
-                '<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>' .
-                '<script>' . file_get_contents(resource_path('js/barcode-scanner.js')) . '</script>'
+                '<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>'.
+                '<script>'.file_get_contents(resource_path('js/barcode-scanner.js')).'</script>'
             ))
             ->renderHook(PanelsRenderHook::BODY_END, fn () => new HtmlString(
                 view('components.barcode-scanner-modal')->render()

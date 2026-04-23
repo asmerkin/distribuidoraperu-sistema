@@ -5,25 +5,28 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\SupplierResource\Pages;
 use App\Filament\Resources\SupplierResource\RelationManagers\CreditNotesRelationManager;
 use App\Filament\Resources\SupplierResource\RelationManagers\InvoicesRelationManager;
-use App\Filament\Resources\SupplierResource\RelationManagers\SupplierVariantsRelationManager;
 use App\Filament\Resources\SupplierResource\RelationManagers\PaymentsRelationManager;
 use App\Filament\Resources\SupplierResource\RelationManagers\PurchaseOrdersRelationManager;
+use App\Filament\Resources\SupplierResource\RelationManagers\SupplierVariantsRelationManager;
+use App\Filament\Resources\SupplierResource\Widgets\SupplierStatsWidget;
 use App\Models\Supplier;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\RestoreAction;
+use Filament\Actions\RestoreBulkAction;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
-use Filament\Actions\RestoreAction;
-use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class SupplierResource extends Resource
@@ -34,9 +37,9 @@ class SupplierResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Proveedores';
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-truck';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-truck';
 
-    protected static string | \UnitEnum | null $navigationGroup = 'Compras';
+    protected static string|\UnitEnum|null $navigationGroup = 'Compras';
 
     protected static ?string $recordTitleAttribute = 'name';
 
@@ -45,7 +48,7 @@ class SupplierResource extends Resource
         return ['name', 'tax_id', 'contact_name', 'email'];
     }
 
-    public static function getGlobalSearchResultDetails(\Illuminate\Database\Eloquent\Model $record): array
+    public static function getGlobalSearchResultDetails(Model $record): array
     {
         return array_filter([
             'CUIT' => $record->tax_id,
@@ -161,7 +164,7 @@ class SupplierResource extends Resource
                 EditAction::make()
                     ->visible(fn ($record) => ! $record->trashed()),
                 RestoreAction::make(),
-                \Filament\Actions\DeleteAction::make()
+                DeleteAction::make()
                     ->label('Archivar')
                     ->modalHeading('Archivar proveedor')
                     ->modalDescription('El proveedor quedará archivado y no aparecerá en los filtros por defecto. Podés restaurarlo en cualquier momento.')
@@ -183,7 +186,7 @@ class SupplierResource extends Resource
     public static function getWidgets(): array
     {
         return [
-            \App\Filament\Resources\SupplierResource\Widgets\SupplierStatsWidget::class,
+            SupplierStatsWidget::class,
         ];
     }
 

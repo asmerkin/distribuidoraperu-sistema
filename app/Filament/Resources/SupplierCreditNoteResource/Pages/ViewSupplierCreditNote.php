@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\SupplierCreditNoteResource\Pages;
 
+use App\Filament\Resources\PurchaseOrderResource;
 use App\Filament\Resources\SupplierCreditNoteResource;
 use App\Filament\Resources\SupplierInvoiceResource;
 use App\Filament\Resources\SupplierResource;
@@ -18,6 +19,7 @@ use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
+use Illuminate\Support\Facades\Storage;
 
 class ViewSupplierCreditNote extends ViewRecord
 {
@@ -51,7 +53,7 @@ class ViewSupplierCreditNote extends ViewRecord
                         Select::make('supplier_invoice_id')
                             ->label('Factura')
                             ->options($invoices->mapWithKeys(fn (SupplierInvoice $i) => [
-                                $i->id => "{$i->invoice_number} — Saldo $ " . number_format($i->balance, 2, ',', '.'),
+                                $i->id => "{$i->invoice_number} — Saldo $ ".number_format($i->balance, 2, ',', '.'),
                             ]))
                             ->searchable()
                             ->required()
@@ -73,7 +75,7 @@ class ViewSupplierCreditNote extends ViewRecord
                             ->required()
                             ->minValue(0.01)
                             ->maxValue($record->balance)
-                            ->helperText('Saldo disponible en NC: $ ' . number_format($record->balance, 2, ',', '.')),
+                            ->helperText('Saldo disponible en NC: $ '.number_format($record->balance, 2, ',', '.')),
                     ];
                 })
                 ->action(function (array $data) use ($record) {
@@ -88,7 +90,7 @@ class ViewSupplierCreditNote extends ViewRecord
 
                     Notification::make()
                         ->title('NC aplicada')
-                        ->body("Se aplicaron $ " . number_format($data['amount'], 2, ',', '.') . " a la factura {$invoice->invoice_number}.")
+                        ->body('Se aplicaron $ '.number_format($data['amount'], 2, ',', '.')." a la factura {$invoice->invoice_number}.")
                         ->success()
                         ->send();
 
@@ -105,7 +107,7 @@ class ViewSupplierCreditNote extends ViewRecord
                     ->label('Ver orden de compra')
                     ->icon('heroicon-o-shopping-cart')
                     ->visible(fn () => $record->purchase_order_id !== null)
-                    ->url(fn () => \App\Filament\Resources\PurchaseOrderResource::getUrl('view', ['record' => $record->purchase_order_id])),
+                    ->url(fn () => PurchaseOrderResource::getUrl('view', ['record' => $record->purchase_order_id])),
             ]),
         ];
     }
@@ -135,7 +137,7 @@ class ViewSupplierCreditNote extends ViewRecord
                     TextEntry::make('attachment')
                         ->label('Adjunto')
                         ->visible(fn () => filled($record->attachment))
-                        ->url(fn () => $record->attachment ? \Illuminate\Support\Facades\Storage::url($record->attachment) : null)
+                        ->url(fn () => $record->attachment ? Storage::url($record->attachment) : null)
                         ->openUrlInNewTab()
                         ->state('Ver adjunto')
                         ->columnSpanFull(),
@@ -157,6 +159,7 @@ class ViewSupplierCreditNote extends ViewRecord
                                     if ($puQty > 1) {
                                         return "{$state} ({$record->base_quantity} uds. base)";
                                     }
+
                                     return $state;
                                 }),
                             TextEntry::make('unit_cost')->label('Costo unit.')->money('ARS'),

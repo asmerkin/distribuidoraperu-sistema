@@ -30,7 +30,7 @@ function createDevice(array $overrides = []): ScannerDevice
 function createAuthenticatedDevice(): array
 {
     $device = createDevice();
-    $rawToken = 'test-token-' . str_repeat('x', 50);
+    $rawToken = 'test-token-'.str_repeat('x', 50);
     $device->update(['token' => hash('sha256', $rawToken)]);
 
     return [$device, $rawToken];
@@ -93,7 +93,7 @@ it('rejects unauthenticated requests', function () {
 
 it('rejects inactive device', function () {
     $device = createDevice(['is_active' => false]);
-    $rawToken = 'inactive-token-' . str_repeat('x', 50);
+    $rawToken = 'inactive-token-'.str_repeat('x', 50);
     $device->update(['token' => hash('sha256', $rawToken)]);
 
     $this->getJson('/api/scanner/device', [

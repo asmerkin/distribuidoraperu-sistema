@@ -29,7 +29,7 @@ class EditSupplier extends EditRecord
                     if (! empty($relations)) {
                         Notification::make()
                             ->title('No se puede eliminar')
-                            ->body('Este proveedor tiene ' . implode(' y ', $relations) . ' asociadas. Eliminá esos registros primero.')
+                            ->body('Este proveedor tiene '.implode(' y ', $relations).' asociadas. Eliminá esos registros primero.')
                             ->danger()
                             ->send();
 

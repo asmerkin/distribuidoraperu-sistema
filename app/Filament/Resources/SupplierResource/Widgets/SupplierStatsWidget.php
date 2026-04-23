@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\SupplierResource\Widgets;
 
 use App\Enums\SupplierInvoiceStatus;
-use App\Models\Supplier;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Database\Eloquent\Model;
@@ -28,14 +27,14 @@ class SupplierStatsWidget extends StatsOverviewWidget
         $cantidadPOs = $supplier->purchaseOrders()->count();
 
         return [
-            Stat::make('Total Facturado', '$ ' . number_format($totalFacturado, 2, ',', '.'))
+            Stat::make('Total Facturado', '$ '.number_format($totalFacturado, 2, ',', '.'))
                 ->icon('heroicon-o-document-text'),
 
-            Stat::make('Total Adeudado', '$ ' . number_format($totalAdeudado, 2, ',', '.'))
+            Stat::make('Total Adeudado', '$ '.number_format($totalAdeudado, 2, ',', '.'))
                 ->icon('heroicon-o-banknotes')
                 ->color($totalAdeudado > 0 ? 'danger' : 'success'),
 
-            Stat::make('Facturas Impagas', $facturasImpagas . ($facturasVencidas > 0 ? " ({$facturasVencidas} vencidas)" : ''))
+            Stat::make('Facturas Impagas', $facturasImpagas.($facturasVencidas > 0 ? " ({$facturasVencidas} vencidas)" : ''))
                 ->icon('heroicon-o-exclamation-triangle')
                 ->color($facturasVencidas > 0 ? 'danger' : ($facturasImpagas > 0 ? 'warning' : 'success')),
 
