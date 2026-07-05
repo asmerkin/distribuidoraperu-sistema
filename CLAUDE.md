@@ -177,3 +177,11 @@ InventoryLevel belongsTo Variant + Location
 - Email de Purchase Orders (pendiente)
 - Import/Export CSV (pendiente)
 - Roles y permisos granulares (pendiente)
+
+## Gestión de Tareas
+
+El backlog del proyecto está en Todoist, proyecto **"🏬 Distribuidora Perú"** (ID: `6gRF37g6rgJPmg8R`). Secciones: En progreso / Inmediato, Compras — mejoras pendientes, Infraestructura & Admin, Módulos Futuros.
+
+## Documentación del Sistema
+
+Este sistema tiene documentación de arquitectura/producto (visión general, módulos, stack técnico) en **Ticketing**, proyecto **DPERP** ("Distribuidora Perú - ERP"). Docs: `vision-general`, `modulos-del-sistema`, `stack-tecnico-y-convenciones` (los dos últimos anidados bajo el primero). Está pensada para ser leída por todo el equipo (no solo devs), en lenguaje conceptual; el detalle técnico de código va en la sección "Para agentes" de `stack-tecnico-y-convenciones`. Si este CLAUDE.md cambia de forma sustancial, conviene actualizar esos docs también.
